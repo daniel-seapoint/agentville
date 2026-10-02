@@ -1,6 +1,6 @@
 import AppKit
 
-/// Draws the app icon: the crowned orange robot on a square of workshop floor.
+/// Draws the app icon: the crowned orange agent on a square of workshop floor.
 enum AppIcon {
     /// Writes a 1024×1024 PNG for each art style into `folder`.
     static func write(to folder: URL) {
@@ -58,7 +58,7 @@ enum AppIcon {
         }
         context.strokePath()
 
-        // A warm glow behind the robot, in its own orange.
+        // A warm glow behind the agent, in its own orange.
         let glow = CGGradient(colorsSpace: space, colors: [
             CGColor(srgbRed: 0.94, green: 0.54, blue: 0.24, alpha: 0.30),
             CGColor(srgbRed: 0.94, green: 0.54, blue: 0.24, alpha: 0),
@@ -66,11 +66,11 @@ enum AppIcon {
         context.drawRadialGradient(glow, startCenter: CGPoint(x: 512, y: 500), startRadius: 0,
                                    endCenter: CGPoint(x: 512, y: 500), endRadius: 420, options: [])
 
-        // The robot, centred on what is actually drawn rather than on its texture, which has
+        // The agent, centred on what is actually drawn rather than on its texture, which has
         // empty rows above the crown.
         let mascot = PixelArt.mascot(style: style)
         let cell: CGFloat = 36
-        let width = CGFloat(PixelArt.robotColumns) * cell
+        let width = CGFloat(PixelArt.agentColumns) * cell
         let height = CGFloat(mascot.rows) * cell
         let visible = CGFloat(mascot.rows - mascot.emptyRowsOnTop) * cell
         let bottom = 512 - visible / 2 - 8

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Builds a release binary and wraps it in build/Agentville.app.
+# Builds a release binary, wraps it in build/Agentville.app and zips it for release.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -44,4 +44,8 @@ PLIST
 
 # Ad-hoc signature so macOS will launch it locally.
 codesign --force --sign - "$APP"
+# A zip of the app, for attaching to a GitHub release.
+rm -f build/Agentville.zip
+ditto -c -k --keepParent "$APP" build/Agentville.zip
 echo "Built $APP — open it with: open $APP"
+echo "Zipped to build/Agentville.zip"

@@ -1,7 +1,7 @@
 import AgentvilleCore
 import SpriteKit
 
-/// The workshop floor: a row of stations along the top with working robots beneath the station
+/// The workshop floor: a row of stations along the top with working agents beneath the station
 /// they are at, and a lounge along the bottom where agents waiting on the user go to sleep.
 final class FloorScene: SKScene {
     /// Called with the agent's id and the click position in view coordinates (origin top-left).
@@ -35,7 +35,7 @@ final class FloorScene: SKScene {
     private var allAgents: [AgentSnapshot] = []
 
     private var agents: [AgentSnapshot] = []
-    private var robots: [String: RobotNode] = [:]
+    private var agentNodes: [String: AgentNode] = [:]
     private var stations: [Stage: StationNode] = [:]
 
     private let panel = SKShapeNode()
@@ -46,7 +46,7 @@ final class FloorScene: SKScene {
     /// Drawn behind the count so it reads as a button: it opens the list of agents.
     private let countButton = SKShapeNode()
     private var emptyState = EmptyStateNode()
-    /// Where rebuilt robots should reappear; only set during `restyle`.
+    /// Where rebuilt agents should reappear; only set during `restyle`.
     private var respawn: [String: CGPoint] = [:]
     private let breakNote = BreakNoteNode()
     private let lounge = SKShapeNode()
@@ -66,10 +66,10 @@ final class FloorScene: SKScene {
         static let margin: CGFloat = 24
         static let headerButtonHeight: CGFloat = 28  // the count button and the legend plates
         static let stationY: CGFloat = 88       // station centre, from the top
-        static let firstRowY: CGFloat = 198     // first robot row, from the top
+        static let firstRowY: CGFloat = 198     // first agent row, from the top
         static let rowStep: CGFloat = 80
         static let loungeTop: CGFloat = 206     // top edge of the lounge, from the bottom
-        static let loungeSeatY: CGFloat = 64    // where a resting robot sits, from the bottom
+        static let loungeSeatY: CGFloat = 64    // where a resting agent sits, from the bottom
     }
 
     override init() {
@@ -136,7 +136,7 @@ final class FloorScene: SKScene {
     override func didChangeSize(_ oldSize: CGSize) {
         guard isSetUp else { return }
         layoutStatic()
-        layoutRobots(animated: false)
+        layoutAgents(animated: false)
     }
 
     // MARK: Updating
@@ -146,32 +146,32 @@ final class FloorScene: SKScene {
         let newAgents = everyone.filter { !hiddenSources.contains($0.source) }
         agents = newAgents
         let ids = Set(newAgents.map(\.id))
-        for (id, robot) in robots where !ids.contains(id) {
-            robot.run(.sequence([.fadeOut(withDuration: 0.3), .removeFromParent()]))
-            robots[id] = nil
+        for (id, agentNode) in agentNodes where !ids.contains(id) {
+            agentNode.run(.sequence([.fadeOut(withDuration: 0.3), .removeFromParent()]))
+            agentNodes[id] = nil
         }
         for agent in newAgents {
-            if let robot = robots[agent.id] {
-                robot.update(agent)
+            if let agentNode = agentNodes[agent.id] {
+                agentNode.update(agent)
             } else {
                 // Subagents pop out of their parent; everyone else walks in from the door.
-                let origin = respawn[agent.id] ?? agent.parentID.flatMap { robots[$0]?.position }
+                let origin = respawn[agent.id] ?? agent.parentID.flatMap { agentNodes[$0]?.position }
                     ?? CGPoint(x: -20, y: Metrics.loungeSeatY)
-                let robot = RobotNode(agent: agent, at: origin)
-                robots[agent.id] = robot
-                addChild(robot)
+                let agentNode = AgentNode(agent: agent, at: origin)
+                agentNodes[agent.id] = agentNode
+                addChild(agentNode)
             }
         }
-        layoutRobots(animated: true)
+        layoutAgents(animated: true)
         refreshHeader()
     }
 
     /// Rebuilds everything drawn from the character maps after `PixelArt.style` changes.
-    /// Robots come back where they were standing rather than walking in again.
+    /// Agents come back where they were standing rather than walking in again.
     func restyle() {
-        respawn = robots.mapValues(\.position)
-        robots.values.forEach { $0.removeFromParent() }
-        robots.removeAll()
+        respawn = agentNodes.mapValues(\.position)
+        agentNodes.values.forEach { $0.removeFromParent() }
+        agentNodes.removeAll()
         emptyState.removeFromParent()
         emptyState = EmptyStateNode()
         emptyState.demoLink.isHidden = isDemo
@@ -275,7 +275,7 @@ final class FloorScene: SKScene {
         }
     }
 
-    /// Where a robot sits on each of the lounge's couches: one at either end and one in the
+    /// Where a agent sits on each of the lounge's couches: one at either end and one in the
     /// middle, listed left to right.
     private var loungeCouches: [CGPoint] {
         [120, size.width / 2, size.width - 120].map { CGPoint(x: $0, y: Metrics.loungeSeatY) }
@@ -289,12 +289,12 @@ final class FloorScene: SKScene {
         furnishedFor = key
         furniture.removeAllChildren()
 
-        /// Stands a piece on the floor line the lounge's robots stand on.
+        /// Stands a piece on the floor line the lounge's agents stand on.
         func place(_ item: PixelArt.Furniture, x: CGFloat) {
             let node = SKSpriteNode(texture: PixelArt.furniture(item))
-            node.size = CGSize(width: CGFloat(item.size.columns) * RobotNode.pixel,
-                               height: CGFloat(item.size.rows) * RobotNode.pixel)
-            node.position = CGPoint(x: x, y: Metrics.loungeSeatY - RobotNode.feet + node.size.height / 2)
+            node.size = CGSize(width: CGFloat(item.size.columns) * AgentNode.pixel,
+                               height: CGFloat(item.size.rows) * AgentNode.pixel)
+            node.position = CGPoint(x: x, y: Metrics.loungeSeatY - AgentNode.feet + node.size.height / 2)
             furniture.addChild(node)
         }
         for couch in loungeCouches { place(.couch, x: couch.x) }
@@ -305,7 +305,7 @@ final class FloorScene: SKScene {
         place(.plant, x: size.width / 2 + 62)
     }
 
-    private func layoutRobots(animated: Bool) {
+    private func layoutAgents(animated: Bool) {
         let topLevel = agents.filter { !$0.isSubagent }
         var targets: [String: (CGPoint, String)] = [:]
 
@@ -333,10 +333,10 @@ final class FloorScene: SKScene {
         var onTheFloor: [AgentSnapshot] = []
         func sit(_ agent: AgentSnapshot) {
             targets[agent.id] = (freeCouches.removeFirst(), "the lounge")
-            robots[agent.id]?.hasCouch = true
+            agentNodes[agent.id]?.hasCouch = true
         }
-        let sitters = resting.filter { robots[$0.id]?.persona.sleepsInBed == false }
-        let bedSleepers = resting.filter { robots[$0.id]?.persona.sleepsInBed != false }
+        let sitters = resting.filter { agentNodes[$0.id]?.persona.sleepsInBed == false }
+        let bedSleepers = resting.filter { agentNodes[$0.id]?.persona.sleepsInBed != false }
         var crowdedOut: [AgentSnapshot] = []
         for agent in sitters {
             if freeCouches.isEmpty { crowdedOut.append(agent) } else { sit(agent) }
@@ -351,7 +351,7 @@ final class FloorScene: SKScene {
             }
         }
         onTheFloor += crowdedOut
-        onTheFloor.forEach { robots[$0.id]?.hasCouch = false }
+        onTheFloor.forEach { agentNodes[$0.id]?.hasCouch = false }
 
         // The floor is shared out evenly between the gaps, left to right. In a crowded gap
         // every other one sits further back so neighbouring thought bubbles do not collide.
@@ -379,9 +379,9 @@ final class FloorScene: SKScene {
         }
 
         for (id, (point, name)) in targets {
-            guard let robot = robots[id] else { continue }
-            robot.move(to: point, heading: name, animated: animated)
-            robot.zPosition = 100 - point.y / 10
+            guard let agentNode = agentNodes[id] else { continue }
+            agentNode.move(to: point, heading: name, animated: animated)
+            agentNode.zPosition = 100 - point.y / 10
         }
     }
 
@@ -408,16 +408,16 @@ final class FloorScene: SKScene {
                 return
             }
         }
-        guard let robot = nodes(at: point).lazy.compactMap({ node -> RobotNode? in
+        guard let agentNode = nodes(at: point).lazy.compactMap({ node -> AgentNode? in
             var current: SKNode? = node
             while let candidate = current {
-                if let robot = candidate as? RobotNode { return robot }
+                if let agentNode = candidate as? AgentNode { return agentNode }
                 current = candidate.parent
             }
             return nil
         }).first, let view else { return }
-        let inView = view.convert(robot.position, from: self)
-        onSelect?(robot.agentID, CGPoint(x: inView.x, y: view.bounds.height - inView.y))
+        let inView = view.convert(agentNode.position, from: self)
+        onSelect?(agentNode.agentID, CGPoint(x: inView.x, y: view.bounds.height - inView.y))
     }
 }
 

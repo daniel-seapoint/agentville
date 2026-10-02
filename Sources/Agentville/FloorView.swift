@@ -115,7 +115,7 @@ struct AgentListPopover: View {
     /// The agent as it appears on the floor, then what it is doing, then whose it is.
     private func row(_ agent: AgentSnapshot) -> some View {
         HStack(alignment: .center, spacing: 10) {
-            RobotPortrait(agent: agent, height: agent.isSubagent ? 24 : 36)
+            AgentPortrait(agent: agent, height: agent.isSubagent ? 24 : 36)
             VStack(alignment: .leading, spacing: 1) {
                 Text(agent.title)
                     .font(agent.isSubagent ? .callout : .body)
@@ -140,13 +140,13 @@ struct AgentListPopover: View {
     }
 }
 
-/// The agent's robot exactly as drawn on the floor: same colour, hat and accessory.
-struct RobotPortrait: View {
+/// The agent's agent exactly as drawn on the floor: same colour, hat and accessory.
+struct AgentPortrait: View {
     let agent: AgentSnapshot
     let height: CGFloat
 
     var body: some View {
-        let image = PixelArt.robotImage(source: agent.source, colorIndex: agent.colorIndex,
+        let image = PixelArt.agentImage(source: agent.source, colorIndex: agent.colorIndex,
                                         persona: Persona(agentID: agent.id), height: height)
         Image(nsImage: image)
             // Pixel art must stay hard-edged when scaled up; the smooth style is already large.
@@ -156,7 +156,7 @@ struct RobotPortrait: View {
     }
 }
 
-/// A provider's logo on its colour, matching the tile beside each robot.
+/// A provider's logo on its colour, matching the tile beside each agent.
 struct ProviderIcon: View {
     let source: AgentSource
     var side: CGFloat = 22
@@ -173,7 +173,7 @@ struct ProviderIcon: View {
     }
 }
 
-/// Shown when a robot is clicked: the agent as drawn on the floor, and the last few things it
+/// Shown when a agent is clicked: the agent as drawn on the floor, and the last few things it
 /// did. Reads the store directly so it stays live.
 struct AgentDetailPopover: View {
     let store: FloorStore
@@ -183,7 +183,7 @@ struct AgentDetailPopover: View {
         if let agent = store.agent(agentID) {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .center, spacing: 12) {
-                    RobotPortrait(agent: agent, height: 64)
+                    AgentPortrait(agent: agent, height: 64)
                     VStack(alignment: .leading, spacing: 3) {
                         Text(agent.title)
                             .font(.headline)

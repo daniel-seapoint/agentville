@@ -1,10 +1,10 @@
 import AgentvilleCore
 import SpriteKit
 
-/// One agent on the floor. While working it is a pixel robot with a prop and a label; once it
+/// One agent on the floor. While working it is a pixel agent with a prop and a label; once it
 /// is idle and has reached the lounge it goes to sleep under a thought bubble: in a bed, sitting
 /// on one of the lounge's couches if it was given one, or on its feet.
-final class RobotNode: SKNode {
+final class AgentNode: SKNode {
     let agentID: String
     let persona: Persona
     private(set) var target: CGPoint
@@ -14,7 +14,7 @@ final class RobotNode: SKNode {
     }
 
     private let sprite: SKSpriteNode
-    private let textures: PixelArt.RobotTextures
+    private let textures: PixelArt.AgentTextures
     private let prop = SKLabelNode()
     private let icon: BadgeNode
 
@@ -49,15 +49,15 @@ final class RobotNode: SKNode {
     private var propMotion = ""
     private var propHome = CGPoint.zero
 
-    /// Half the height of the robot's body, and how far a hat rises above it.
+    /// Half the height of the agent's body, and how far a hat rises above it.
     private let bodyHalf: CGFloat
     private let hatHeight: CGFloat
 
     static let pixel: CGFloat = 2.5
-    /// Distance from a full-size robot's centre down to the floor it stands on.
+    /// Distance from a full-size agent's centre down to the floor it stands on.
     static var feet: CGFloat { CGFloat(PixelArt.bodyRows) * pixel / 2 }
     private static let walkSpeed: CGFloat = 170
-    /// How far a robot is lifted when it sits on one of the lounge's couches.
+    /// How far a agent is lifted when it sits on one of the lounge's couches.
     private static let couchSeat: CGFloat = 6
     private static let bubbleFill = NSColor(srgbRed: 0.08, green: 0.09, blue: 0.11, alpha: 0.96)
 
@@ -68,7 +68,7 @@ final class RobotNode: SKNode {
         compact = agent.isSubagent
         persona = Persona(agentID: agent.id)
         color = PixelArt.color(agent.colorIndex)
-        textures = PixelArt.robot(source: agent.source, colorIndex: agent.colorIndex,
+        textures = PixelArt.agentTextures(source: agent.source, colorIndex: agent.colorIndex,
                                   hat: persona.hat, accessory: persona.accessory)
         sprite = SKSpriteNode(texture: textures.walk[0])
         bed = SKSpriteNode(texture: PixelArt.bed(colorIndex: agent.colorIndex))
@@ -81,7 +81,7 @@ final class RobotNode: SKNode {
         position = point
 
         // The texture has spare rows on top for hats; anchor on the middle of the body below them.
-        sprite.size = CGSize(width: CGFloat(PixelArt.robotColumns) * scale, height: CGFloat(PixelArt.canvasRows) * scale)
+        sprite.size = CGSize(width: CGFloat(PixelArt.agentColumns) * scale, height: CGFloat(PixelArt.canvasRows) * scale)
         sprite.anchorPoint = CGPoint(x: 0.5, y: CGFloat(PixelArt.bodyRows) / 2 / CGFloat(PixelArt.canvasRows))
         addChild(sprite)
 
@@ -184,7 +184,7 @@ final class RobotNode: SKNode {
         addChild(caption)
     }
 
-    /// Height of the top of a sleeper: the bed, or the robot's head (and hat), which is higher
+    /// Height of the top of a sleeper: the bed, or the agent's head (and hat), which is higher
     /// still when it is sitting up on a couch.
     private func dreamBase(inBed: Bool, onCouch: Bool) -> CGFloat {
         inBed ? bed.position.y + bed.size.height / 2 : bodyHalf + hatHeight + (onCouch ? Self.couchSeat : 0)
@@ -230,7 +230,7 @@ final class RobotNode: SKNode {
         refresh()
     }
 
-    /// Confetti waits until the robot is standing at Ship. The status line changes the moment
+    /// Confetti waits until the agent is standing at Ship. The status line changes the moment
     /// a commit happens, but the walk there only starts once the stage has held for a moment.
     /// If the turn ends first, celebrate where it stands.
     private func celebrateIfReady() {

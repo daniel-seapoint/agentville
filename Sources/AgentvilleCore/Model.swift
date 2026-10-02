@@ -48,7 +48,7 @@ public struct AgentEvent: Equatable {
         case appeared(source: AgentSource, title: String, cwd: String, parent: String?)
         case titled(String)
         case turnStarted
-        /// `stage == nil` means "keep the robot where it is, just update the status line".
+        /// `stage == nil` means "keep the agent where it is, just update the status line".
         case activity(stage: Stage?, status: String, ship: Bool)
         case turnEnded
         case gone
@@ -74,7 +74,7 @@ public struct AgentSnapshot: Identifiable, Equatable {
     public var title: String
     public var cwd: String
     public var parentID: String?
-    /// Station the robot stands at. `nil` while idle or before the first classified action.
+    /// Station the agent stands at. `nil` while idle or before the first classified action.
     public var stage: Stage?
     public var status: String
     public var isWorking: Bool

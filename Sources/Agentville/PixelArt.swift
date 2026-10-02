@@ -1,7 +1,7 @@
 import AgentvilleCore
 import SpriteKit
 
-/// Robots are drawn from character maps at one pixel per cell and scaled up with
+/// Agents are drawn from character maps at one pixel per cell and scaled up with
 /// nearest-neighbour filtering, so they stay crisp at any size.
 ///
 /// Colour keys: `B` body, `D` shaded body, `A` highlight, `W` white, `K` dark, `.` transparent,
@@ -73,7 +73,7 @@ enum PixelArt {
     static let hatRows = 5
     static let bodyRows = 14
     static var canvasRows: Int { hatRows + bodyRows }
-    static let robotColumns = 12
+    static let agentColumns = 12
 
     enum Hat: CaseIterable {
         case beanie, topHat, partyHat, cap, crown, headphones
@@ -163,7 +163,7 @@ enum PixelArt {
         return NSColor(srgbRed: r, green: g, blue: b, alpha: 1)
     }
 
-    /// Badge colour for each provider. Robots are coloured per agent, so the badge is what
+    /// Badge colour for each provider. Agents are coloured per agent, so the badge is what
     /// identifies the provider at a glance.
     static func providerColor(_ source: AgentSource) -> NSColor {
         switch source {
@@ -173,38 +173,38 @@ enum PixelArt {
         }
     }
 
-    // MARK: Robots
+    // MARK: Agents
 
-    struct RobotTextures {
+    struct AgentTextures {
         /// The walk cycle; the first frame doubles as the standing pose.
         var walk: [SKTexture]
         /// Standing with eyes closed, for those who doze on their feet.
         var asleep: SKTexture
     }
 
-    private static var robotCache: [String: RobotTextures] = [:]
+    private static var agentCache: [String: AgentTextures] = [:]
 
-    static func robot(source: AgentSource, colorIndex: Int, hat: Hat?, accessory: Accessory?) -> RobotTextures {
+    static func agentTextures(source: AgentSource, colorIndex: Int, hat: Hat?, accessory: Accessory?) -> AgentTextures {
         let key = "\(source.rawValue)-\(colorIndex % palette.count)-\(String(describing: hat))-\(String(describing: accessory))"
-        if let cached = robotCache[key] { return cached }
+        if let cached = agentCache[key] { return cached }
         let tint = paletteEntry(colorIndex)
         func frame(legs: [String], asleep: Bool) -> SKTexture {
             texture(rows: compose(source, legs: legs, hat: hat, accessory: accessory, asleep: asleep), tint: tint)
         }
-        let textures = RobotTextures(walk: legs.map { frame(legs: $0, asleep: false) },
+        let textures = AgentTextures(walk: legs.map { frame(legs: $0, asleep: false) },
                                      asleep: frame(legs: legs[0], asleep: true))
-        robotCache[key] = textures
+        agentCache[key] = textures
         return textures
     }
 
-    /// The standing robot as an image for SwiftUI, `height` points tall including hat room.
-    static func robotImage(source: AgentSource, colorIndex: Int, persona: Persona, height: CGFloat) -> NSImage {
-        let standing = robot(source: source, colorIndex: colorIndex, hat: persona.hat, accessory: persona.accessory).walk[0]
-        let width = height * CGFloat(robotColumns) / CGFloat(canvasRows)
+    /// The standing agent as an image for SwiftUI, `height` points tall including hat room.
+    static func agentImage(source: AgentSource, colorIndex: Int, persona: Persona, height: CGFloat) -> NSImage {
+        let standing = agentTextures(source: source, colorIndex: colorIndex, hat: persona.hat, accessory: persona.accessory).walk[0]
+        let width = height * CGFloat(agentColumns) / CGFloat(canvasRows)
         return NSImage(cgImage: standing.cgImage(), size: NSSize(width: width, height: height))
     }
 
-    /// The app icon's mascot: the orange Codex-shaped robot in a crown, standing, drawn large.
+    /// The app icon's mascot: the orange Codex-shaped agent in a crown, standing, drawn large.
     /// Returns the image and how many of its rows at the top are empty.
     static func mascot(style: Style) -> (image: CGImage, emptyRowsOnTop: Int, rows: Int) {
         let rows = compose(.codex, legs: legs[0], hat: .crown, accessory: nil, asleep: false)
@@ -221,7 +221,7 @@ enum PixelArt {
         let all = compose(.codex, legs: legs[0], hat: .crown, accessory: nil, asleep: false)
         let rows = Array(all.drop { row in row.allSatisfy { $0 == "." } })
         let cell = 4 // pixels; drawn at about three times the size it is shown
-        let width = robotColumns * cell
+        let width = agentColumns * cell
         let height = rows.count * cell
         let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
                                 space: CGColorSpace(name: CGColorSpace.sRGB)!,
@@ -249,7 +249,7 @@ enum PixelArt {
                                 asleep: Bool) -> [[Character]] {
         let body = bodies[source]!
         let bodyRows = asleep ? closingEyes(body.rows) : body.rows
-        var canvas = Array(repeating: Array(repeating: Character("."), count: robotColumns), count: hatRows)
+        var canvas = Array(repeating: Array(repeating: Character("."), count: agentColumns), count: hatRows)
         canvas += (bodyRows + legs).map(Array.init)
         let headTop = hatRows + body.headTop
 
@@ -263,7 +263,7 @@ enum PixelArt {
 
         if let hat {
             // Antennae would poke through the hat.
-            for row in 0..<headTop { canvas[row] = Array(repeating: ".", count: robotColumns) }
+            for row in 0..<headTop { canvas[row] = Array(repeating: ".", count: agentColumns) }
             overlay(hat.overlay.rows, at: headTop + hat.overlay.offset)
         }
         switch accessory {
@@ -293,7 +293,7 @@ enum PixelArt {
 
     // MARK: Beds
 
-    /// A bed seen from the side with the robot tucked in, head on the pillow.
+    /// A bed seen from the side with the agent tucked in, head on the pillow.
     private static let bedRows = [
         "O...................",
         "O..BBBBB............",
@@ -485,11 +485,11 @@ enum PixelArt {
 
     /// Persisted, so the choice survives a relaunch. Changing it drops every cached texture;
     /// nodes already on screen keep their old ones until they are rebuilt.
-    static var style: Style = UserDefaults.standard.string(forKey: "robotStyle").flatMap(Style.init) ?? .smooth {
+    static var style: Style = UserDefaults.standard.string(forKey: "artStyle").flatMap(Style.init) ?? .smooth {
         didSet {
             guard style != oldValue else { return }
-            UserDefaults.standard.set(style.rawValue, forKey: "robotStyle")
-            robotCache.removeAll()
+            UserDefaults.standard.set(style.rawValue, forKey: "artStyle")
+            agentCache.removeAll()
             bedCache.removeAll()
             furnitureCache.removeAll()
         }

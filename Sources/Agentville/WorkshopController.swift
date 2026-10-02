@@ -119,6 +119,27 @@ final class WorkshopController {
             scene.hiddenSources = hiddenProviders // observers do not run during init
         }
 
+        // `--record <folder> [--after s] [--seconds s]` saves the floor ten times a second as
+        // numbered PNGs, for turning into a GIF, then quits.
+        if let folder = value(after: "--record") {
+            let delay = value(after: "--after").flatMap(Double.init) ?? 5
+            let frames = Int((value(after: "--seconds").flatMap(Double.init) ?? 6) * 10)
+            let url = URL(fileURLWithPath: folder)
+            try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                var frame = 0
+                let recorder = Timer(timeInterval: 0.1, repeats: true) { timer in
+                    self?.saveSnapshot(to: url.appendingPathComponent(String(format: "frame_%03d.png", frame)))
+                    frame += 1
+                    if frame >= frames {
+                        timer.invalidate()
+                        NSApp.terminate(nil)
+                    }
+                }
+                RunLoop.main.add(recorder, forMode: .common)
+            }
+        }
+
         if let path = value(after: "--snapshot") {
             let delay = value(after: "--after").flatMap(Double.init) ?? 6
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in

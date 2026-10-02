@@ -33,7 +33,7 @@ final class FloorStoreTests: XCTestCase {
         let store = makeStore()
         store.ingest([activity(.research)], now: t0)
         store.ingest([activity(.build, "Editing…")], now: t0.addingTimeInterval(1))
-        XCTAssertEqual(store.agent("a")?.stage, .research, "robot stays put during the dwell")
+        XCTAssertEqual(store.agent("a")?.stage, .research, "agent stays put during the dwell")
         XCTAssertEqual(store.agent("a")?.status, "Editing…", "status updates straight away")
 
         store.tick(now: t0.addingTimeInterval(2))

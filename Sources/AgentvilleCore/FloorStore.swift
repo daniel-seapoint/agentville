@@ -6,7 +6,7 @@ import Observation
 public final class FloorStore {
     public private(set) var agents: [AgentSnapshot] = []
 
-    /// How long a new stage must hold before the robot walks to it. Stops robots
+    /// How long a new stage must hold before the agent walks to it. Stops agents
     /// ping-ponging between stations on Read → Edit → Read sequences.
     public var dwell: TimeInterval = 1.5
 
