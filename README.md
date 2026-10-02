@@ -47,9 +47,36 @@ Requires macOS 14 or later on an Apple silicon Mac.
 
 1. Download `Agentville.zip` from the [latest release](https://github.com/danfar93/agentville/releases/latest) and unzip it.
 2. Drag **Agentville** into your Applications folder.
-3. The first time, right-click the app and choose **Open**, then **Open** again. The app is not
-   notarised by Apple, so a plain double-click is blocked. If macOS still refuses, go to
-   **System Settings → Privacy & Security** and click **Open Anyway**.
+3. Open it, and allow it the first time (see below).
+
+**Opening it the first time**
+
+macOS blocks Agentville on first launch. Apple only lets an app open without a warning if its
+developer has paid for an Apple Developer account and sent the app to Apple to be checked
+("notarised"). Agentville is a free hobby project that has not been through that, so macOS
+cannot vouch for it and asks you to confirm. You only do this once. The source code is all in
+this repository if you would rather read it or build it yourself.
+
+1. Double-click Agentville. macOS says it was not opened. Click **Done**, not "Move to Bin".
+
+   <img src="docs/install-1-not-opened.png" width="277" alt="macOS dialog: Agentville.app Not Opened, with Done and Move to Bin buttons">
+
+2. Open **System Settings → Privacy & Security** and scroll down to Security. Click
+   **Open Anyway** next to the message about Agentville.
+
+   <img src="docs/install-2-privacy-security.png" width="474" alt="Privacy & Security: Agentville.app was blocked to protect your Mac, with an Open Anyway button">
+
+3. In the dialog that follows, click **Open Anyway**. macOS may ask for your password or Touch ID.
+
+   <img src="docs/install-3-open-anyway.png" width="279" alt="macOS dialog: Open Agentville.app? with Move to Bin, Open Anyway and Done buttons">
+
+From then on Agentville opens normally.
+
+Prefer Terminal? This one command does the same thing:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/Agentville.app
+```
 
 **Or build it yourself** (needs Xcode 15 or later)
 
