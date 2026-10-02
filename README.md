@@ -11,18 +11,28 @@ A Mac app that turns every running session into a little cartoon agent.
 
 ## What you get
 
-| | |
-|---|---|
-| **Working** — each agent stands at the station that matches what it is doing, tool in hand. | ![Agents at their stations](docs/floor.png) |
-| **Idle** — agents waiting on you head to the lounge and fall asleep. | ![Agents asleep in the lounge](docs/idle.gif) |
-| **Nobody home** — the dog keeps watch until a session starts. | ![The empty workshop](docs/empty.gif) |
-| **Pixel style** — switch the artwork between smooth and pixel art. | ![The floor in pixel art](docs/pixel-style.png) |
+**Working** — each agent stands at the station that matches what it is doing, tool in hand.
+
+![Agents at their stations](docs/floor.png)
+
+**Idle** — agents waiting on you head to the lounge and fall asleep.
+
+![Agents asleep in the lounge](docs/idle.gif)
+
+**Nobody home** — the dog keeps watch until a session starts.
+
+![The empty workshop](docs/empty.gif)
+
+**Pixel style** — switch the artwork between smooth and pixel art.
+
+![The floor in pixel art](docs/pixel-style.png)
+
+**Agent list and close-up** — open the list from the header, or click an agent to see its recent tasks.
 
 <p align="center">
 <img src="docs/agent-list.png" width="340" alt="The list of agents with their task, station and provider">
 <img src="docs/agent-detail.png" width="290" alt="One agent up close with its recent tasks">
 </p>
-<p align="center"><em>Open the agent list from the header, or click an agent to see its recent tasks.</em></p>
 
 Also: filter by provider from the legend, keep the window on top, and a menu bar counter of
 agents at work.
