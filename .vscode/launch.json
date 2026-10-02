@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:agent-workshop}",
+            "name": "Debug Agentville",
+            "target": "Agentville",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug Agentville"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:agent-workshop}",
+            "name": "Release Agentville",
+            "target": "Agentville",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release Agentville"
+        }
+    ]
+}
