@@ -1,5 +1,7 @@
 <p align="center"><img src="docs/icon.png" width="128" alt="Agentville icon: an orange agent wearing a crown"></p>
 
+<p align="center"><img src="docs/providers.png" width="268" alt="Claude, Codex and Copilot"></p>
+
 <h1 align="center">Agentville</h1>
 
 <p align="center">

@@ -1,3 +1,4 @@
+import AgentvilleCore
 import AppKit
 
 /// Draws the app icon: the crowned orange agent on a square of workshop floor.
@@ -9,6 +10,11 @@ enum AppIcon {
             guard let image = render(style: style) else { continue }
             let url = folder.appendingPathComponent("Agentville-icon-\(style.rawValue).png")
             try? NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])?.write(to: url)
+            print(url.path)
+        }
+        if let pills = providerPills() {
+            let url = folder.appendingPathComponent("Agentville-providers.png")
+            try? NSBitmapImageRep(cgImage: pills).representation(using: .png, properties: [:])?.write(to: url)
             print(url.path)
         }
         // The menu bar icon too, enlarged on white, so it can be looked at.
@@ -28,6 +34,40 @@ enum AppIcon {
                 print(url.path)
             }
         }
+    }
+
+    /// The three provider plates from the header's legend, side by side on a clear background,
+    /// for use outside the app (the README).
+    static func providerPills() -> CGImage? {
+        let scale: CGFloat = 3
+        let height: CGFloat = 28, logoSide: CGFloat = 17, inset: CGFloat = 9, gap: CGFloat = 7, spacing: CGFloat = 8
+        let sources: [AgentSource] = [.claude, .codex, .copilot]
+        let names = sources.map { NSAttributedString.label($0.displayName, size: 12.5, weight: .semibold, color: ProviderLogo.ink) }
+        let widths = names.map { (inset + logoSide + gap + $0.size().width + inset).rounded(.up) }
+        let total = widths.reduce(0, +) + spacing * CGFloat(sources.count - 1)
+
+        guard let context = CGContext(data: nil, width: Int(total * scale), height: Int(height * scale),
+                                      bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        context.scaleBy(x: scale, y: scale)
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: false)
+        defer { NSGraphicsContext.restoreGraphicsState() }
+
+        var x: CGFloat = 0
+        for (index, source) in sources.enumerated() {
+            let pill = CGRect(x: x, y: 0, width: widths[index], height: height)
+            context.addPath(CGPath(roundedRect: pill, cornerWidth: 7, cornerHeight: 7, transform: nil))
+            context.setFillColor(PixelArt.providerColor(source).cgColor)
+            context.fillPath()
+            if let logo = ProviderLogo.texture(for: source)?.cgImage() {
+                context.draw(logo, in: CGRect(x: x + inset, y: (height - logoSide) / 2, width: logoSide, height: logoSide))
+            }
+            let name = names[index]
+            name.draw(at: CGPoint(x: x + inset + logoSide + gap, y: (height - name.size().height) / 2))
+            x += widths[index] + spacing
+        }
+        return context.makeImage()
     }
 
     static func render(style: PixelArt.Style) -> CGImage? {
