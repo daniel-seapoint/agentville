@@ -265,16 +265,26 @@ private final class OffscreenRenderer {
         guard let device = MTLCreateSystemDefaultDevice(), let queue = device.makeCommandQueue() else { return nil }
         self.device = device
         self.queue = queue
+        size = scene.size
+        guard size.width > 0, size.height > 0 else { return nil }
         renderer = SKRenderer(device: device)
         renderer.scene = scene
         // From here on this renderer drives the scene, so the view must not advance it too.
         scene.view?.isPaused = true
+        // Keep the floor laid out at the window's size and scale it up to fill the texture,
+        // rather than letting it resize to the texture's pixels.
+        scene.scaleMode = .fill
+        scene.size = size
     }
+
+    /// The scene's size in points, as it was in the window.
+    private let size: CGSize
 
     func render(scale: CGFloat) -> CGImage? {
         guard let scene = renderer.scene else { return nil }
-        let width = Int((scene.size.width * scale).rounded())
-        let height = Int((scene.size.height * scale).rounded())
+        if scene.size != size { scene.size = size }
+        let width = Int((size.width * scale).rounded())
+        let height = Int((size.height * scale).rounded())
         let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm, width: width,
                                                                   height: height, mipmapped: false)
         descriptor.usage = [.renderTarget, .shaderRead]
