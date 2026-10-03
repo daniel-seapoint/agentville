@@ -19,6 +19,8 @@ enum Wardrobe {
     private static let columns = 12
     private static let margin: CGFloat = 28
     private static let titleHeight: CGFloat = 30
+    /// Space above each section's title after the first.
+    private static let sectionGap: CGFloat = 26
     private static let scale: CGFloat = 2
 
     static func write(to url: URL) {
@@ -79,7 +81,8 @@ enum Wardrobe {
         let sections = Self.sections
         let rowsPerSection = sections.map { ($0.items.count + columns - 1) / columns }
         let width = margin * 2 + CGFloat(columns) * slotWidth
-        let height = margin * 2 + rowsPerSection.reduce(0) { $0 + titleHeight + CGFloat($1) * slotHeight }
+        let height = margin * 2 + sectionGap * CGFloat(sections.count - 1)
+            + rowsPerSection.reduce(0) { $0 + titleHeight + CGFloat($1) * slotHeight }
         guard let context = CGContext(data: nil, width: Int(width * scale), height: Int(height * scale),
                                       bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpace(name: CGColorSpace.sRGB)!,
                                       bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
@@ -94,15 +97,16 @@ enum Wardrobe {
             NSGraphicsContext.restoreGraphicsState()
         }
 
-        let colors = Theme.workshop.colors
+        let colors = Theme.colors
         context.setFillColor(colors.panel.cgColor)
         context.fill(CGRect(x: 0, y: 0, width: width, height: height))
 
         // Laid out from the top down; Core Graphics counts from the bottom.
         var top = margin
         for (sectionIndex, section) in sections.enumerated() {
+            if sectionIndex > 0 { top += sectionGap }
             let title = NSAttributedString.label(section.title.uppercased(), size: 11, weight: .semibold,
-                                                 color: NSColor(white: 1, alpha: 0.55))
+                                                 color: colors.ink.withAlphaComponent(0.55))
             title.draw(at: CGPoint(x: margin + 6, y: height - top - 18))
             top += titleHeight
             for (index, item) in section.items.enumerated() {
@@ -113,7 +117,7 @@ enum Wardrobe {
                 draw(item, in: context, centerX: centerX, feetY: height - slotTop - slotHeight + 26)
                 if !item.label.isEmpty {
                     let label = NSAttributedString.label(item.label, size: 10, weight: .medium,
-                                                         color: NSColor(white: 1, alpha: 0.8))
+                                                         color: colors.ink.withAlphaComponent(0.8))
                     label.draw(at: CGPoint(x: centerX - label.size().width / 2, y: height - slotTop - slotHeight + 6))
                 }
             }

@@ -13,13 +13,13 @@ WORK="$(mktemp -d)"
 mkdir -p docs/themes docs/styles
 
 # Every hat, accessory, pattern, colour and style on one sheet. Drawn offscreen.
-"$BIN" --wardrobe docs/wardrobe.png
+"$BIN" --wardrobe docs/wardrobe.png -theme workshop
 
 # `-theme` and `-artStyle` are read as defaults for this run only, so they do not change the
 # saved settings. Forgetting the window's saved frame gives every picture the default size.
 defaults delete Agentville "NSWindow Frame AgentvilleMain" 2>/dev/null || true
 run() {
-    "$BIN" --demo working "$@"
+    "$BIN" --demo working --snapshot-scale 2 "$@"
 }
 
 for theme in $THEMES; do

@@ -9,13 +9,17 @@ import sys
 
 from PIL import Image
 
-WIDTH = 960
+WIDTH = 1600
+# The GIF is smaller: every other recorded frame, eight per theme.
+GIF_WIDTH = 800
+STEP = 2
+FRAMES_PER_THEME = 8
 
 
-def shrink(image):
-    if image.width <= WIDTH:
+def shrink(image, width=WIDTH):
+    if image.width <= width:
         return image
-    return image.resize((WIDTH, round(image.height * WIDTH / image.width)), Image.LANCZOS)
+    return image.resize((width, round(image.height * width / image.width)), Image.LANCZOS)
 
 
 def main():
@@ -27,18 +31,18 @@ def main():
 
     frames = []
     for theme in themes:
-        paths = sorted(glob.glob(os.path.join(recordings, theme, "frame_*.png")))
+        paths = sorted(glob.glob(os.path.join(recordings, theme, "frame_*.png")))[::STEP][:FRAMES_PER_THEME]
         if not paths:
             print(f"no frames for {theme}", file=sys.stderr)
             continue
-        for path in paths:
-            frames.append(shrink(Image.open(path).convert("RGB")))
+        clip = [shrink(Image.open(path).convert("RGB"), GIF_WIDTH) for path in paths]
+        # One palette per theme keeps its colours true and lets unchanged pixels carry over.
+        palette = clip[0].quantize(colors=128, method=Image.Quantize.MEDIANCUT)
+        frames += [frame.quantize(palette=palette, dither=Image.Dither.NONE) for frame in clip]
     if not frames:
         sys.exit("no frames recorded")
-    # One palette per frame keeps each theme's colours true.
-    quantized = [frame.quantize(colors=200, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE) for frame in frames]
     out = os.path.join(docs, "themes.gif")
-    quantized[0].save(out, save_all=True, append_images=quantized[1:], duration=100, loop=0, optimize=True)
+    frames[0].save(out, save_all=True, append_images=frames[1:], duration=100 * STEP, loop=0, optimize=True)
     print(out, len(frames), "frames", os.path.getsize(out) // 1024, "KB")
 
 

@@ -1,5 +1,6 @@
 import AgentvilleCore
 import AppKit
+import Metal
 import Observation
 import SpriteKit
 import SwiftUI
@@ -50,6 +51,8 @@ final class WorkshopController {
         didSet {
             guard theme != oldValue else { return }
             Theme.current = theme
+            // Outlines are drawn in the theme's ink.
+            PixelArt.clearCaches()
             applyAppearance()
             scene.restyle()
         }
@@ -77,6 +80,10 @@ final class WorkshopController {
         [ClaudeSource(), CodexSource(), CopilotSource()]
     }
     @ObservationIgnored private var timer: Timer?
+    /// Pixels per point for `--snapshot` and `--record`, set with `--snapshot-scale`. Above 1
+    /// the floor is drawn offscreen at that resolution, whatever the screen's own.
+    @ObservationIgnored private var snapshotScale: CGFloat = 1
+    @ObservationIgnored private var offscreen: OffscreenRenderer?
 
     /// Flags: `--demo [working|idle|empty]` to open on the demo, `--replay <file> [--speed N]` to
     /// play back a recorded session in place of live ones, `--snapshot <png> [--after seconds]` to save the floor and
@@ -98,6 +105,7 @@ final class WorkshopController {
             Wardrobe.write(to: URL(fileURLWithPath: path))
             exit(0)
         }
+        snapshotScale = value(after: "--snapshot-scale").flatMap(Double.init).map { CGFloat($0) } ?? 1
         if let path = value(after: "--replay") {
             let speed = value(after: "--speed").flatMap(Double.init) ?? 1
             makeLiveSources = { [ReplaySource(url: URL(fileURLWithPath: path), speed: speed)] }
@@ -227,11 +235,71 @@ final class WorkshopController {
     }
 
     private func saveSnapshot(to url: URL) {
+        if snapshotScale > 1 {
+            if offscreen == nil { offscreen = OffscreenRenderer(scene: scene) }
+            if let image = offscreen?.render(scale: snapshotScale) {
+                let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
+                try? png?.write(to: url)
+                return
+            }
+            FileHandle.standardError.write(Data("offscreen snapshot failed; using the window\n".utf8))
+        }
         guard let image = scene.view?.texture(from: scene)?.cgImage() else {
             FileHandle.standardError.write(Data("snapshot failed: the scene is not on screen\n".utf8))
             return
         }
         let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
         try? png?.write(to: url)
+    }
+}
+
+/// Draws the scene into a Metal texture of any size, for snapshots sharper than the screen.
+/// Once it has the scene it also keeps it moving, since the scene is then no longer driven by
+/// its view.
+private final class OffscreenRenderer {
+    private let device: MTLDevice
+    private let queue: MTLCommandQueue
+    private let renderer: SKRenderer
+
+    init?(scene: SKScene) {
+        guard let device = MTLCreateSystemDefaultDevice(), let queue = device.makeCommandQueue() else { return nil }
+        self.device = device
+        self.queue = queue
+        renderer = SKRenderer(device: device)
+        renderer.scene = scene
+        // From here on this renderer drives the scene, so the view must not advance it too.
+        scene.view?.isPaused = true
+    }
+
+    func render(scale: CGFloat) -> CGImage? {
+        guard let scene = renderer.scene else { return nil }
+        let width = Int((scene.size.width * scale).rounded())
+        let height = Int((scene.size.height * scale).rounded())
+        let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm, width: width,
+                                                                  height: height, mipmapped: false)
+        descriptor.usage = [.renderTarget, .shaderRead]
+        descriptor.storageMode = .shared
+        guard let texture = device.makeTexture(descriptor: descriptor),
+              let buffer = queue.makeCommandBuffer() else { return nil }
+        let pass = MTLRenderPassDescriptor()
+        pass.colorAttachments[0].texture = texture
+        pass.colorAttachments[0].loadAction = .clear
+        pass.colorAttachments[0].storeAction = .store
+        pass.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 1)
+
+        renderer.update(atTime: CACurrentMediaTime())
+        renderer.render(withViewport: CGRect(x: 0, y: 0, width: width, height: height),
+                        commandBuffer: buffer, renderPassDescriptor: pass)
+        buffer.commit()
+        buffer.waitUntilCompleted()
+
+        let bytesPerRow = width * 4
+        var bytes = [UInt8](repeating: 0, count: bytesPerRow * height)
+        texture.getBytes(&bytes, bytesPerRow: bytesPerRow, from: MTLRegionMake2D(0, 0, width, height), mipmapLevel: 0)
+        guard let provider = CGDataProvider(data: Data(bytes) as CFData) else { return nil }
+        let info = CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue)
+        return CGImage(width: width, height: height, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: bytesPerRow,
+                       space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: info, provider: provider,
+                       decode: nil, shouldInterpolate: false, intent: .defaultIntent)
     }
 }

@@ -626,10 +626,15 @@ enum PixelArt {
         didSet {
             guard style != oldValue else { return }
             if savesStyle { UserDefaults.standard.set(style.rawValue, forKey: "artStyle") }
-            agentCache.removeAll()
-            bedCache.removeAll()
-            furnitureCache.removeAll()
+            clearCaches()
         }
+    }
+
+    /// Drops every cached texture, so the next ones are drawn in the current style and theme.
+    static func clearCaches() {
+        agentCache.removeAll()
+        bedCache.removeAll()
+        furnitureCache.removeAll()
     }
 
     private static func color(of cell: Character, tint: (CGFloat, CGFloat, CGFloat)) -> (CGFloat, CGFloat, CGFloat)? {
@@ -736,7 +741,8 @@ enum PixelArt {
             halo = union
             for _ in 0..<2 { halo = boxBlur(halo, width: width, height: height, radius: cell) }
         }
-        let outlineInk: (Float, Float, Float) = (0.07, 0.08, 0.10)
+        // Outlines are light on a dark floor and dark on a light one, so they always show.
+        let outlineInk: (Float, Float, Float) = Theme.colors.isLight ? (0.10, 0.11, 0.14) : (0.93, 0.94, 0.97)
         // A glow is the agent's own colour, lifted towards white.
         let glowColor = (Float(min(1, tint.0 * 0.6 + 0.4)), Float(min(1, tint.1 * 0.6 + 0.4)),
                          Float(min(1, tint.2 * 0.6 + 0.4)))
