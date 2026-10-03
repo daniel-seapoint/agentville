@@ -90,11 +90,20 @@ with any theme.
 </tr>
 </table>
 
-**Wardrobe** — every agent gets its own look, kept for as long as the session lives: one of 25
-hats, glasses or a mustache, something round its neck, stripes, spots, a belly patch or
-overalls, and one of 15 colours.
+**Costumes** — on the four storybook themes everyone dresses for the world they are in:
 
-![Every hat, accessory, pattern, colour and style](docs/wardrobe.png)
+- **Hyperspace**: hooded robes, pilot helmets and capes, and an energy blade in blue, green,
+  red or purple.
+- **Spellhall**: school robes, pointed hats, round glasses, striped scarves and a wand.
+- **Hearthland**: a grey wizard with a long beard and a staff, fair-haired travellers in
+  cloaks with swords, and helmeted axe-bearers with bushy beards.
+- **Suburbia**: everyday hair, shirts and ties, pearls, overalls and the odd donut.
+
+**Wardrobe** — every agent gets its own look, kept for as long as the session lives: one of 35
+hats, hairstyles and helmets, glasses, a mustache or a beard, something round its neck, a
+pattern or an outfit, and one of 15 colours.
+
+![Every hat, accessory, outfit, colour, thing to carry, costume and style](docs/wardrobe.png)
 
 **Agent list and close-up** — open the list from the header, or click an agent to see its recent tasks.
 

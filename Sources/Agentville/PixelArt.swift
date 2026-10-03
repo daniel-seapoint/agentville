@@ -79,6 +79,8 @@ enum PixelArt {
         case beanie, topHat, partyHat, cap, crown, headphones
         case cowboy, wizard, chef, hardHat, santa, propeller, halo, viking, fez, mortarboard, bow
         case pirate, beret, flowerCrown, bunnyEars, catEars, sprout, hood, circlet
+        case robeHood, greyWizard, pilotHelmet, ironHelmet
+        case spikyHair, messyHair, longHair, curlyHair, ponytail, buns
 
         /// The rows to draw and where the first one goes relative to the top of the head.
         fileprivate var overlay: (offset: Int, rows: [String]) {
@@ -137,6 +139,33 @@ enum PixelArt {
                              "g..........g", "gg........gg"])
             case .circlet:
                 return (0, ["..YYYSSYYY.."])
+            case .robeHood:
+                // A plain brown robe's hood, for a wandering knight of the stars.
+                return (-2, ["....oooo....", "..oooooooo..", ".oooooooooo.", "oo........oo", "o..........o",
+                             "o..........o", "oo........oo"])
+            case .greyWizard:
+                // Tall, pointed and wide-brimmed, in travel-stained grey.
+                return (-6, [".......h....", "......hh....", ".....hhh....", "....hhhhh...", "...hhhhhhh..",
+                             "hhhhhhhhhhhh"])
+            case .pilotHelmet:
+                return (-2, ["...OOOOOO...", "..OOOWWOOO..", ".OOOOOOOOOO.", "OO........OO", "OO........OO"])
+            case .ironHelmet:
+                return (-3, ["....GGGG....", "..GGGGGGGG..", ".GGGGGGGGGG.", "..YYYYYYYY.."])
+            case .spikyHair:
+                return (-2, ["...k.kk.k...", "..kkkkkkkk.."])
+            case .messyHair:
+                return (-2, ["...kk.kkk...", "..kkkkkkkkk.", ".kkkkkkkkkk.", ".k.kk..k..k."])
+            case .longHair:
+                // Fair and flowing, down past the shoulders.
+                return (-1, ["..yyyyyyyy..", ".yyyyyyyyyy.", "yy........yy", "yy........yy", "yy........yy",
+                             "yy........yy", "yy........yy", ".y........y."])
+            case .curlyHair:
+                return (-2, ["..o.o.o.o...", ".ooooooooo..", "oooooooooooo", "o.o......o.o"])
+            case .ponytail:
+                return (-2, ["...OOOOOO...", "..OOOOOOOOOO", "..........OO", "...........O"])
+            case .buns:
+                // Hair coiled into a bun over each ear.
+                return (-1, ["...kkkkkk...", "kkkkkkkkkkkk", "kk........kk", "kk........kk"])
             }
         }
     }
@@ -144,12 +173,14 @@ enum PixelArt {
     /// Something worn on the face or round the neck. An agent wears at most one of each.
     enum Accessory: CaseIterable {
         case sunglasses, heartGlasses, nerdGlasses, roundGlasses, monocle, eyepatch, mustache
-        case bowTie, scarf, stripedScarf, necktie, goldChain
+        case longBeard, bushyBeard
+        case bowTie, scarf, stripedScarf, necktie, goldChain, pearls
 
         var isOnFace: Bool {
             switch self {
-            case .sunglasses, .heartGlasses, .nerdGlasses, .roundGlasses, .monocle, .eyepatch, .mustache: return true
-            case .bowTie, .scarf, .stripedScarf, .necktie, .goldChain: return false
+            case .sunglasses, .heartGlasses, .nerdGlasses, .roundGlasses, .monocle, .eyepatch, .mustache,
+                 .longBeard, .bushyBeard: return true
+            case .bowTie, .scarf, .stripedScarf, .necktie, .goldChain, .pearls: return false
             }
         }
 
@@ -175,6 +206,12 @@ enum PixelArt {
                 return (true, -1, [".KKKKKKKKKK.", ".KKKK.......", ".KKKK.......", "..KK........"])
             case .mustache:
                 return (true, 2, ["...oooooo...", "..oo....oo.."])
+            case .longBeard:
+                // Long and white, from under the nose to the middle of the chest.
+                return (true, 2, ["..WWWWWWWW..", ".WWWWWWWWWW.", ".WWWWWWWWWW.", "..WWWWWWWW..", "...WWWWWW...",
+                                  "....WWWW....", ".....WW....."])
+            case .bushyBeard:
+                return (true, 2, ["..OOOOOOOO..", ".OOOOOOOOOO.", ".OOOOOOOOOO.", "..OOOoOOOO..", "...OO..OO..."])
             case .bowTie:
                 return (false, 0, ["...RRKKRR..."])
             case .scarf:
@@ -185,6 +222,8 @@ enum PixelArt {
                 return (false, 0, [".....CC.....", ".....CC.....", "....CCCC....", ".....CC....."])
             case .goldChain:
                 return (false, 0, ["...Y....Y...", "....Y..Y....", ".....YY....."])
+            case .pearls:
+                return (false, 1, ["..W.W.W.W.W."])
             }
         }
     }
@@ -192,6 +231,9 @@ enum PixelArt {
     /// Markings on the agent's own body colour. Drawn only over the body, never over eyes or clothes.
     enum Pattern: CaseIterable {
         case plain, stripes, spots, belly, overalls
+        /// Outfits: a brown robe over a cream tunic, a black school robe, a green tunic with a
+        /// belt, chainmail, and a white shirt with blue trousers.
+        case robe, schoolRobe, tunic, chainmail, shirt
 
         /// Repaints the body cells of a composed agent; `top` is the canvas row of the body map's first row.
         fileprivate func apply(to canvas: inout [[Character]], top: Int) {
@@ -215,6 +257,24 @@ enum PixelArt {
                 paint(9, 3, "c")
                 paint(9, 8, "c")
                 for row in 10...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "c") } }
+            case .robe:
+                for row in 9...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "o") } }
+                paint(9, 5, "E")
+                paint(9, 6, "E")
+                for column in 0..<PixelArt.agentColumns { paint(11, column, "k") }
+            case .schoolRobe:
+                for row in 9...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "K") } }
+                paint(9, 4, "W")
+                paint(9, 7, "W")
+            case .tunic:
+                for row in 9...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "g") } }
+                for column in 0..<PixelArt.agentColumns { paint(11, column, "o") }
+            case .chainmail:
+                for row in 9...11 { for column in 0..<PixelArt.agentColumns { paint(row, column, (row + column) % 2 == 0 ? "G" : "h") } }
+                for row in 12...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "h") } }
+            case .shirt:
+                for row in 9...10 { for column in 0..<PixelArt.agentColumns { paint(row, column, "W") } }
+                for row in 11...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "C") } }
             }
         }
     }
@@ -224,6 +284,69 @@ enum PixelArt {
         var hat: Hat?
         var accessories: [Accessory] = []
         var pattern: Pattern = .plain
+        /// The colour key of a cape hanging behind the agent, if it wears one.
+        var cape: Character?
+        /// What it carries in its free hand. Drawn as a separate sprite beside the agent.
+        var held: Held?
+    }
+
+    /// Things an agent can carry: energy blades in four colours, a sword, a staff, a wand, an
+    /// axe, and a donut.
+    enum Held: CaseIterable {
+        case blueBlade, greenBlade, redBlade, purpleBlade, sword, staff, wand, axe, donut
+
+        /// The map, top to bottom, and which row the hand holds.
+        fileprivate var map: (rows: [String], grip: Int) {
+            switch self {
+            case .blueBlade, .greenBlade, .redBlade, .purpleBlade:
+                // A glowing blade, white at the core, over a metal hilt. `B` is the blade's colour.
+                return ([".B.", "BWB", "BWB", "BWB", "BWB", "BWB", "BWB", "BWB", "BWB", "BWB", "BWB",
+                         ".G.", "GKG", ".G.", ".K."], 12)
+            case .sword:
+                return (["..W..", "..WG.", "..WG.", "..WG.", "..WG.", "..WG.", "..WG.", "..WG.", "YYYYY",
+                         "..o..", "..o..", "..Y.."], 9)
+            case .staff:
+                return ([".S.", "SWS", ".S.", ".o.", ".o.", ".o.", ".o.", ".o.", ".o.", ".o.", ".o.", ".o.",
+                         ".o.", ".o.", ".o.", ".o."], 12)
+            case .wand:
+                return ([".Y.", "YWY", ".Y.", ".o.", ".o.", ".o.", ".k."], 5)
+            case .axe:
+                return ([".GG.", "GGGo", "GGGo", ".GGo", "...o", "...o", "...o", "...o", "...o", "...o"], 7)
+            case .donut:
+                return ([".PPPP.", "PPYPPP", "PP..PP", "PPPYPP", ".oooo."], 2)
+            }
+        }
+
+        var size: (columns: Int, rows: Int) { (map.rows.map(\.count).max() ?? 1, map.rows.count) }
+        var grip: Int { map.grip }
+
+        /// The blade's colour; other things are drawn in their own colours.
+        fileprivate var tint: (CGFloat, CGFloat, CGFloat) {
+            switch self {
+            case .blueBlade: return (0.30, 0.60, 1.00)
+            case .greenBlade: return (0.30, 0.95, 0.40)
+            case .redBlade: return (1.00, 0.20, 0.20)
+            case .purpleBlade: return (0.75, 0.40, 1.00)
+            default: return (1, 1, 1)
+            }
+        }
+
+        var isBlade: Bool {
+            switch self {
+            case .blueBlade, .greenBlade, .redBlade, .purpleBlade: return true
+            default: return false
+            }
+        }
+    }
+
+    private static var heldCache: [Held: SKTexture] = [:]
+
+    /// The held thing in the current style.
+    static func heldTexture(_ held: Held) -> SKTexture {
+        if let cached = heldCache[held] { return cached }
+        let made = texture(rows: held.map.rows.map(Array.init), tint: held.tint)
+        heldCache[held] = made
+        return made
     }
 
     static let palette: [(CGFloat, CGFloat, CGFloat)] = [
@@ -264,6 +387,8 @@ enum PixelArt {
         "T": (1.00, 0.85, 0.12),                             // cartoon skin
         "Q": (0.80, 0.64, 0.40),                             // stubble
         "g": (0.20, 0.36, 0.20),                             // cloak green
+        "k": (0.24, 0.15, 0.08),                             // dark brown hair, belts
+        "y": (0.96, 0.86, 0.55),                             // fair hair
     ]
 
     private static func paletteEntry(_ index: Int) -> (CGFloat, CGFloat, CGFloat) {
@@ -400,6 +525,16 @@ enum PixelArt {
             for (index, row) in rows.enumerated() where canvas.indices.contains(top + index) {
                 for (column, cell) in row.enumerated() where cell != "." {
                     canvas[top + index][column] = cell
+                }
+            }
+        }
+
+        if let cape = look.cape {
+            // Hung behind the agent: it fills only empty cells, so it shows round the shoulders,
+            // down the sides and between the legs.
+            for row in (hatRows + neckRow)...(hatRows + bodyRows - 1) {
+                for column in 1...(agentColumns - 2) where canvas[row][column] == "." {
+                    canvas[row][column] = cape
                 }
             }
         }
@@ -675,6 +810,7 @@ enum PixelArt {
         agentCache.removeAll()
         bedCache.removeAll()
         furnitureCache.removeAll()
+        heldCache.removeAll()
     }
 
     private static func color(of cell: Character, tint: (CGFloat, CGFloat, CGFloat)) -> (CGFloat, CGFloat, CGFloat)? {

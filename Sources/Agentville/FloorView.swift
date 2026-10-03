@@ -162,7 +162,7 @@ struct AgentPortrait: View {
 
     var body: some View {
         let image = PixelArt.agentImage(source: agent.source, colorIndex: agent.colorIndex,
-                                        look: Persona(agentID: agent.id).look, height: height)
+                                        look: Persona(agentID: agent.id).look(for: Theme.current), height: height)
         Image(nsImage: image)
             // Pixel art must stay hard-edged when scaled up; the smooth style is already large.
             .interpolation(PixelArt.style == .pixel ? .none : .high)
