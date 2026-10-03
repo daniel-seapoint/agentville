@@ -51,14 +51,15 @@ final class WorkshopController {
         didSet {
             guard theme != oldValue else { return }
             Theme.current = theme
-            // A film or TV theme brings its own agent style. Leaving one for an ordinary theme
-            // puts back the style that was in use before, unless it was changed in between.
+            if theme.isMiddleEarth { lastMiddleEarth = theme }
+            // Picking a film or TV theme switches to its own agent style. Leaving one for an
+            // everyday theme puts back the style that was in use before it.
             switchingTheme = true
             if let style = theme.agentStyle {
-                if oldValue.agentStyle == nil { styleBeforeTheme = artStyle }
+                if !oldValue.isTribute { styleBeforeTheme = artStyle }
                 artStyle = style
-            } else if let style = styleBeforeTheme, artStyle == oldValue.agentStyle {
-                artStyle = style
+            } else if oldValue.isTribute {
+                artStyle = styleBeforeTheme ?? .smooth
                 styleBeforeTheme = nil
             }
             switchingTheme = false
@@ -67,6 +68,48 @@ final class WorkshopController {
             applyAppearance()
             scene.restyle()
         }
+    }
+    /// The Lord of the Rings scene picked last, so choosing Lord of the Rings again goes back to it.
+    var lastMiddleEarth: Theme = Theme.current.isMiddleEarth ? Theme.current : .lordOfTheRings
+    /// The character the app icon is dressed as: an id from `AppIcon.choices`. Saved.
+    var appIcon = UserDefaults.standard.string(forKey: "appIcon") ?? "default" {
+        didSet {
+            guard appIcon != oldValue else { return }
+            UserDefaults.standard.set(appIcon, forKey: "appIcon")
+            applyAppIcon()
+        }
+    }
+
+    /// Shows the chosen icon in the Dock, and gives the app's bundle the same icon so Finder and
+    /// the Dock show it when the app is not running too. The default puts the bundle's own back.
+    func applyAppIcon() {
+        let bundle = Bundle.main.bundleURL
+        let isApp = bundle.pathExtension == "app"
+        if appIcon == "default" && isApp {
+            NSApp.applicationIconImage = nil
+            NSWorkspace.shared.setIcon(nil, forFile: bundle.path, options: [])
+            return
+        }
+        guard let icon = AppIcon.render(choice: appIcon) else { return }
+        let image = NSImage(cgImage: icon, size: NSSize(width: 512, height: 512))
+        NSApp.applicationIconImage = image
+        if isApp { NSWorkspace.shared.setIcon(image, forFile: bundle.path, options: []) }
+    }
+
+    /// Bumped when favourite characters change, so the menu shows the new ticks.
+    var charactersVersion = 0
+
+    /// Stars or unstars a favourite character and recasts the floor to match.
+    func setFavourite(_ id: String, in key: String, to on: Bool) {
+        Cast.setFavourite(id, in: key, to: on)
+        charactersVersion += 1
+        scene.restyle()
+    }
+
+    func clearFavourites(in key: String) {
+        Cast.clearFavourites(in: key)
+        charactersVersion += 1
+        scene.restyle()
     }
     /// The demo scene on show, or nil when showing real sessions. The demo is there for people
     /// to play with; it never touches real sessions and switching back picks them up afresh.
@@ -115,9 +158,27 @@ final class WorkshopController {
             return arguments[index + 1]
         }
 
+        // Each theme offers its own set of styles (`Theme.styles`).
+        // Settings saved by an older version, or a `-theme`/`-artStyle` pair that does not
+        // match, are put right here.
+        if let saved = styleBeforeTheme, !saved.fits(.workshop) { styleBeforeTheme = nil }
+        if !artStyle.fits(theme) {
+            artStyle = theme.agentStyle ?? styleBeforeTheme ?? .smooth
+        }
+
         // `--icon <folder>` writes the app icon artwork there and quits.
         if let folder = value(after: "--icon") {
             AppIcon.write(to: URL(fileURLWithPath: folder))
+            exit(0)
+        }
+        // `--icon-gif <gif>` writes the README's animated icon and quits.
+        if let path = value(after: "--icon-gif") {
+            AppIcon.writeGIF(to: URL(fileURLWithPath: path))
+            exit(0)
+        }
+        // `--casts <folder>` draws each film or TV theme's cast, named, and quits.
+        if let folder = value(after: "--casts") {
+            Wardrobe.writeCasts(to: URL(fileURLWithPath: folder))
             exit(0)
         }
         // `--wardrobe <png>` draws every hat, accessory, pattern, colour and art style and quits.
@@ -190,6 +251,9 @@ final class WorkshopController {
                 if let detailPath = value(after: "--detail-snapshot"), let first = self?.store.agents.first {
                     MainActor.assumeIsolated { self?.saveDetailSnapshot(of: first.id, to: URL(fileURLWithPath: detailPath)) }
                 }
+                if let pickerPath = value(after: "--icon-picker-snapshot") {
+                    MainActor.assumeIsolated { self?.savePickerSnapshot(to: URL(fileURLWithPath: pickerPath)) }
+                }
                 if let listPath = value(after: "--list-snapshot") {
                     MainActor.assumeIsolated { self?.saveListSnapshot(to: URL(fileURLWithPath: listPath)) }
                 }
@@ -233,6 +297,16 @@ final class WorkshopController {
         for window in NSApp.windows where window.canBecomeMain {
             window.level = floatOnTop ? .floating : .normal
         }
+    }
+
+    /// The app icon picker, for checking it without clicking.
+    @MainActor private func savePickerSnapshot(to url: URL) {
+        let renderer = ImageRenderer(content: AppIconPicker(controller: self, scrolls: false)
+            .background(Color(white: 0.13))
+            .environment(\.colorScheme, .dark))
+        renderer.scale = 2
+        guard let image = renderer.cgImage else { return }
+        try? NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])?.write(to: url)
     }
 
     /// One agent's popover, for checking it without clicking.

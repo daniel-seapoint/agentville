@@ -95,8 +95,33 @@ enum Wardrobe {
         ]
     }
 
-    static func render() -> CGImage? {
-        let sections = Self.sections
+    /// Writes one sheet per film or TV cast into `folder`, every character labelled with its
+    /// name and drawn on that theme's floor colours: `cast-<key>.png`.
+    static func writeCasts(to folder: URL) {
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let previousTheme = Theme.current
+        defer { Theme.current = previousTheme }
+        let sources: [AgentSource] = [.claude, .codex, .copilot]
+        for theme in [Theme.simpsons, .starWars, .lordOfTheRings, .harryPotter] {
+            guard let key = Cast.key(for: theme) else { continue }
+            Theme.current = theme
+            PixelArt.clearCaches()
+            let members = Cast.main(key)
+            let items = members.enumerated().map { index, member in
+                Item(label: member.name, source: sources[index % 3], color: index, look: member.look)
+            }
+            guard let image = render(sections: [(theme.menuLabel, items)], columns: members.count),
+                  let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:]) else { continue }
+            let url = folder.appendingPathComponent("cast-\(key).png")
+            try? png.write(to: url)
+            print(url.path)
+        }
+        PixelArt.clearCaches()
+    }
+
+    static func render() -> CGImage? { render(sections: sections, columns: columns) }
+
+    private static func render(sections: [(title: String, items: [Item])], columns: Int) -> CGImage? {
         let rowsPerSection = sections.map { ($0.items.count + columns - 1) / columns }
         let width = margin * 2 + CGFloat(columns) * slotWidth
         let height = margin * 2 + sectionGap * CGFloat(sections.count - 1)

@@ -32,6 +32,7 @@ struct FloorView: View {
 /// the appearance menu (theme and art style), and the button that keeps the window above everything.
 struct TitleBarControls: View {
     @Bindable var controller: WorkshopController
+    @State private var showingIconPicker = false
 
     var body: some View {
         HStack(spacing: 10) {
@@ -58,28 +59,92 @@ struct TitleBarControls: View {
             .help("Live shows your real agents. Demo shows scripted ones to play with.")
             // One menu for both, so the title bar does not grow with every theme and style.
             Menu {
-                Section("Theme") {
-                    Picker("Theme", selection: $controller.theme) {
-                        ForEach(Theme.allCases) { Text($0.label).tag($0) }
+                Section("Theme") { themePicker(Theme.everyday, label: "Theme") }
+                Section("Film & TV") {
+                    // Lord of the Rings is one entry; picking it returns to the scene last used.
+                    Picker("Film & TV", selection: Binding<Theme?>(
+                        get: { controller.theme.isMiddleEarth ? .lordOfTheRings
+                               : (Theme.filmAndTV.contains(controller.theme) ? controller.theme : nil) },
+                        set: { picked in
+                            guard let picked else { return }
+                            if picked.isMiddleEarth {
+                                if !controller.theme.isMiddleEarth { controller.theme = controller.lastMiddleEarth }
+                            } else {
+                                controller.theme = picked
+                            }
+                        })) {
+                        ForEach(Theme.filmAndTV) { Text($0.menuLabel).tag(Optional($0)) }
                     }
                     .pickerStyle(.inline)
                     .labelsHidden()
                 }
+                if controller.theme.isMiddleEarth {
+                    Section("Lord of the Rings") {
+                        Picker("Lord of the Rings", selection: $controller.theme) {
+                            ForEach(Theme.middleEarthScenes) { Text($0.sceneLabel).tag($0) }
+                        }
+                        .pickerStyle(.inline)
+                        .labelsHidden()
+                    }
+                }
+                // Only the styles this theme offers.
                 Section("Agent style") {
                     Picker("Agent style", selection: $controller.artStyle) {
-                        ForEach(PixelArt.Style.allCases) { Text($0.label).tag($0) }
+                        ForEach(controller.theme.styles) { Text($0.label).tag($0) }
                     }
                     .pickerStyle(.inline)
                     .labelsHidden()
                 }
+                // On themes with named characters, star favourites: they are cast first, in the
+                // order starred. The rest of the cast still appears after them.
+                if let key = Cast.key(for: controller.theme) {
+                    Section("Characters") {
+                        Menu("Favourite characters") {
+                            let _ = controller.charactersVersion
+                            let favourites = Cast.favourites(key)
+                            ForEach(Cast.main(key)) { member in
+                                Toggle(member.name, isOn: Binding(
+                                    get: { favourites.contains(member.id) },
+                                    set: { controller.setFavourite(member.id, in: key, to: $0) }))
+                            }
+                            Divider()
+                            Button("Clear Favourites") { controller.clearFavourites(in: key) }
+                                .disabled(favourites.isEmpty)
+                            Text("Favourites are shown first")
+                        }
+                    }
+                }
             } label: {
-                Image(systemName: "paintpalette")
+                // Named, so it is clear this is where the look of the floor is changed. The title
+                // bar's controls are sized once, when the window opens, so the name sits in a
+                // space wide enough for the longest one; otherwise a long name would push the
+                // demo picker out of view.
+                Label {
+                    ZStack(alignment: .leading) {
+                        ForEach(Theme.allCases) { Text(title(for: $0)).hidden() }
+                        Text(themeTitle)
+                    }
+                } icon: {
+                    Image(systemName: "paintpalette.fill")
+                }
+                .labelStyle(.titleAndIcon)
             }
             .menuStyle(.button)
-            .buttonStyle(.borderless)
-            .menuIndicator(.hidden)
+            .buttonStyle(.bordered)
+            .menuIndicator(.visible)
             .fixedSize()
-            .help("Theme and agent style")
+            .help("Theme, agent style and favourite characters")
+            // The app's own icon, picked from a previewer of every character.
+            Button { showingIconPicker.toggle() } label: {
+                Label("App Icon", systemImage: "app.badge")
+                    .labelStyle(.titleAndIcon)
+            }
+            .buttonStyle(.bordered)
+            .fixedSize()
+            .help("Dress the app icon as a character")
+            .popover(isPresented: $showingIconPicker, arrowEdge: .bottom) {
+                AppIconPicker(controller: controller)
+            }
             Toggle(isOn: $controller.floatOnTop) {
                 Image(systemName: controller.floatOnTop ? "pin.fill" : "pin")
             }
@@ -88,6 +153,104 @@ struct TitleBarControls: View {
             .help("Keep Agentville above other windows")
         }
         .padding(.trailing, 10)
+    }
+}
+
+extension TitleBarControls {
+    /// The theme button's title: the theme, and for Lord of the Rings which scene.
+    var themeTitle: String { title(for: controller.theme) }
+
+    func title(for theme: Theme) -> String {
+        theme.isMiddleEarth ? "\(theme.menuLabel) · \(theme.sceneLabel)" : theme.menuLabel
+    }
+
+    /// One section's worth of themes. Two of these share the theme setting, so each shows a
+    /// tick only when the current theme is one of its own.
+    private func themePicker(_ themes: [Theme], label: String) -> some View {
+        Picker(label, selection: Binding<Theme?>(
+            get: { themes.contains(controller.theme) ? controller.theme : nil },
+            set: { if let theme = $0 { controller.theme = theme } })) {
+            ForEach(themes) { Text($0.label).tag(Optional($0)) }
+        }
+        .pickerStyle(.inline)
+        .labelsHidden()
+    }
+}
+
+/// Picks the app icon: a large preview of the one being looked at, and every choice below it
+/// as a thumbnail, grouped by film or show. Clicking a thumbnail previews it; the button makes
+/// it the app's icon.
+struct AppIconPicker: View {
+    @Bindable var controller: WorkshopController
+    /// Off when drawing the picker to an image, which leaves a scroll view's contents out.
+    var scrolls = true
+    @State private var previewing: String?
+
+    private var shown: String { previewing ?? controller.appIcon }
+
+    var body: some View {
+        let choices = AppIcon.choices
+        let current = choices.first { $0.id == shown } ?? choices[0]
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 16) {
+                Image(nsImage: AppIcon.thumbnail(current.id))
+                    .resizable()
+                    .interpolation(.high)
+                    .frame(width: 128, height: 128)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(current.name)
+                        .font(.title2.bold())
+                    Text(current.theme?.menuLabel ?? "Agentville")
+                        .foregroundStyle(.secondary)
+                    Spacer().frame(height: 6)
+                    if current.id == controller.appIcon {
+                        Label("Current app icon", systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                    } else {
+                        Button("Use as App Icon") { controller.appIcon = current.id }
+                            .buttonStyle(.borderedProminent)
+                    }
+                }
+            }
+            Divider()
+            let groups = VStack(alignment: .leading, spacing: 10) {
+                group(nil, title: "Agentville", choices)
+                ForEach(Theme.filmAndTV) { theme in group(theme, title: theme.menuLabel, choices) }
+            }
+            .padding(.bottom, 4)
+            if scrolls { ScrollView { groups } } else { groups }
+        }
+        .padding(16)
+        .frame(width: 460, height: scrolls ? 560 : nil)
+    }
+
+    private func group(_ theme: Theme?, title: String,
+                       _ choices: [(id: String, name: String, theme: Theme?, look: PixelArt.Look)]) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title.uppercased())
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 64), spacing: 8)], alignment: .leading, spacing: 8) {
+                ForEach(choices.filter { $0.theme == theme }, id: \.id) { choice in
+                    Button { previewing = choice.id } label: {
+                        Image(nsImage: AppIcon.thumbnail(choice.id))
+                            .resizable()
+                            .frame(width: 60, height: 60)
+                            .padding(2)
+                            .background(RoundedRectangle(cornerRadius: 14)
+                                .stroke(choice.id == shown ? Color.accentColor : .clear, lineWidth: 2.5))
+                            .overlay(alignment: .bottomTrailing) {
+                                if choice.id == controller.appIcon {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(.white, .green)
+                                }
+                            }
+                    }
+                    .buttonStyle(.plain)
+                    .help(choice.name)
+                }
+            }
+        }
     }
 }
 
@@ -207,6 +370,12 @@ struct AgentDetailPopover: View {
                             if !agent.isSubagent { ProviderIcon(source: agent.source, side: 16) }
                             Text("\(agent.source.displayName)\(agent.isSubagent ? " subagent" : "") · \(agent.isWorking ? (agent.stage?.title ?? "Thinking") : "Idle")")
                                 .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        // The character this agent is playing, on themes with named characters.
+                        if !agent.isSubagent, let member = Casting.shared.member(for: agent.id, theme: Theme.current) {
+                            Text("as \(member.name)")
+                                .font(.subheadline.italic())
                                 .foregroundStyle(.secondary)
                         }
                     }

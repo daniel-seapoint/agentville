@@ -81,6 +81,24 @@ enum PixelArt {
         case pirate, beret, flowerCrown, bunnyEars, catEars, sprout, hood, circlet
         case robeHood, greyWizard, pilotHelmet, ironHelmet
         case spikyHair, messyHair, longHair, curlyHair, ponytail, buns
+        /// A battered brown pointed hat, for the school of wizards. Only worn on that theme.
+        case schoolHat
+        /// A tall white pointed hat, for a white wizard. Only worn on the Lord of the Rings themes.
+        case whiteWizard
+        /// A black pointed hat with a gold buckle, for the masters of the school of wizards.
+        case witchHat
+        /// Costume only: a towering blue beehive; and two lonely strands of hair on a bald head.
+        case beehive, twoHairs
+        /// Costume only: a black dark-lord helmet, a white trooper helmet, and a grey bounty
+        /// hunter's helmet.
+        case darkHelmet, trooperHelmet, hunterHelmet
+
+        /// The hats an agent can be given on an everyday theme. Leaves out the ones kept for a
+        /// costume, without changing which hat anyone already has.
+        static var everyday: [Hat] {
+            allCases.filter { ![.schoolHat, .whiteWizard, .witchHat, .beehive, .twoHairs,
+                                .darkHelmet, .trooperHelmet, .hunterHelmet].contains($0) }
+        }
 
         /// The rows to draw and where the first one goes relative to the top of the head.
         fileprivate var overlay: (offset: Int, rows: [String]) {
@@ -101,7 +119,13 @@ enum PixelArt {
             case .cowboy:
                 return (-3, ["....OOOO....", "...OooooO...", "OOOOOOOOOOOO"])
             case .wizard:
-                return (-4, ["......VV....", ".....VVV....", "....VYVVV...", "..VVVVVVVV..", ".VVVVVVVVVV."])
+                // Tall and pointed, the tip bending over, with a gold star and a wide brim.
+                return (-7, [".......VV...", "......VVV...", ".....VVVV...", "....VVYVVV..", "...VVYYYVV..",
+                             "..VVVVYVVVV.", "VVVVVVVVVVVV"])
+            case .schoolHat:
+                // Pointed and a little crumpled, in worn brown leather with a darker band.
+                return (-5, [".......o....", "......oo....", ".....oOoo...", "...oooooo...", "..ooooooooo.",
+                             "oooooooooooo"])
             case .chef:
                 return (-4, ["...WWWWWW...", "..WWWWWWWW..", "..WWWWWWWW..", "...WGGGGW..."])
             case .hardHat:
@@ -143,6 +167,23 @@ enum PixelArt {
                 // A plain brown robe's hood, for a wandering knight of the stars.
                 return (-2, ["....oooo....", "..oooooooo..", ".oooooooooo.", "oo........oo", "o..........o",
                              "o..........o", "oo........oo"])
+            case .darkHelmet:
+                return (-3, ["...KKKKKK...", "..KKKKKKKK..", ".KKKKKKKKKK.", "KK........KK", "KK........KK"])
+            case .trooperHelmet:
+                return (-3, ["...WWWWWW...", "..WWWWWWWW..", ".WWWWWWWWWW.", "WW........WW", "WW........WW"])
+            case .hunterHelmet:
+                return (-3, ["...GGGGGG...", "..GGGGGGGG..", ".GGGRGGGGGG.", "GG........GG", "GG........GG"])
+            case .beehive:
+                return (-6, ["....CCCC....", "...CCCCCC...", "...CCCCCC...", "..CCCCCCCC..", "..CCCCCCCC..",
+                             ".CCCCCCCCCC."])
+            case .twoHairs:
+                return (-2, ["....k..k....", "...k..k....."])
+            case .whiteWizard:
+                return (-6, [".......W....", "......WW....", ".....WWW....", "....WWWWW...", "...WWWWWWW..",
+                             "WWWWWWWWWWWW"])
+            case .witchHat:
+                return (-6, [".......H....", "......HH....", ".....HHH....", "....HHHHH...", "...HHYYHHH..",
+                             "HHHHHHHHHHHH"])
             case .greyWizard:
                 // Tall, pointed and wide-brimmed, in travel-stained grey.
                 return (-6, [".......h....", "......hh....", ".....hhh....", "....hhhhh...", "...hhhhhhh..",
@@ -234,6 +275,21 @@ enum PixelArt {
         /// Outfits: a brown robe over a cream tunic, a charcoal school robe, a green tunic with a
         /// belt, chainmail, and a white shirt with blue trousers.
         case robe, schoolRobe, tunic, chainmail, shirt
+        /// Costume only: a grey wizard's robe with a darker belt.
+        case greyRobe
+        /// Costume only, for a cartoon family and their town: a green dress, a red shirt with
+        /// blue shorts, a red dress, a blue sleepsuit, a green suit, and a green jumper.
+        case greenDress, redShirt, redDress, sleepsuit, greenSuit, jumper
+        /// Costume only, for a galaxy far away: a black vest over a white shirt, a black robe,
+        /// white armour, grey armour, and shaggy brown fur.
+        case vest, darkRobe, whiteArmour, greyArmour, fur
+        /// Costume only: a hobbit's green waistcoat over a cream shirt, with brown breeches; a
+        /// violet wizard's robe with a gold belt; and a white wizard's robe.
+        case waistcoat, wizardRobe, whiteRobe
+
+        /// The markings an agent can be given on an everyday theme (besides plain). Leaves out
+        /// the costume-only ones, without changing anyone's existing pattern.
+        static let everyday: [Pattern] = [.stripes, .spots, .belly, .overalls, .robe, .schoolRobe, .tunic, .chainmail, .shirt]
 
         /// Repaints the body cells of a composed agent; `top` is the canvas row of the body map's first row.
         fileprivate func apply(to canvas: inout [[Character]], top: Int) {
@@ -276,6 +332,58 @@ enum PixelArt {
             case .shirt:
                 for row in 9...10 { for column in 0..<PixelArt.agentColumns { paint(row, column, "W") } }
                 for row in 11...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "C") } }
+            case .waistcoat:
+                // Shirt sleeves either side, the waistcoat open down the middle over the shirt.
+                for row in 9...11 {
+                    for column in 0..<PixelArt.agentColumns {
+                        paint(row, column, [3, 4, 7, 8].contains(column) ? "N" : "E")
+                    }
+                }
+                for row in 12...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "k") } }
+            case .wizardRobe:
+                for row in 9...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "V") } }
+                for column in 0..<PixelArt.agentColumns { paint(11, column, "Y") }
+            case .vest:
+                for row in 9...11 {
+                    for column in 0..<PixelArt.agentColumns { paint(row, column, [3, 4, 7, 8].contains(column) ? "j" : "W") }
+                }
+                for row in 12...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "u") } }
+            case .darkRobe:
+                for row in 9...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "j") } }
+                for column in 4...7 { paint(10, column, "G") }
+            case .whiteArmour:
+                for row in 9...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "W") } }
+                for column in 0..<PixelArt.agentColumns { paint(11, column, "G") }
+            case .greyArmour:
+                for row in 9...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "G") } }
+                for column in 0..<PixelArt.agentColumns { paint(11, column, "o") }
+            case .fur:
+                for row in 9...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, (row + column) % 3 == 0 ? "O" : "o") } }
+                for column in 0..<PixelArt.agentColumns { paint(10, column, column % 2 == 0 ? "G" : "k") }
+            case .greenDress:
+                for row in 9...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "N") } }
+            case .redShirt:
+                for row in 9...10 { for column in 0..<PixelArt.agentColumns { paint(row, column, "R") } }
+                for row in 11...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "C") } }
+            case .redDress:
+                for row in 9...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "R") } }
+            case .sleepsuit:
+                for row in 9...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "C") } }
+            case .greenSuit:
+                for row in 9...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "g") } }
+                paint(9, 5, "W")
+                paint(9, 6, "W")
+            case .jumper:
+                for row in 9...11 { for column in 0..<PixelArt.agentColumns { paint(row, column, "N") } }
+                paint(9, 5, "P")
+                paint(9, 6, "P")
+                for row in 12...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "H") } }
+            case .greyRobe:
+                for row in 9...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "G") } }
+                for column in 0..<PixelArt.agentColumns { paint(11, column, "h") }
+            case .whiteRobe:
+                for row in 9...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "W") } }
+                for column in 0..<PixelArt.agentColumns { paint(11, column, "G") }
             }
         }
     }
@@ -289,12 +397,18 @@ enum PixelArt {
         var cape: Character?
         /// What it carries in its free hand. Drawn as a separate sprite beside the agent.
         var held: Held?
+        /// Recolours a hairstyle hat, as a colour key: `j` black, `x` ginger, `y` fair, `k` dark brown.
+        var hair: Character?
+        /// Recolours a beard, as a colour key.
+        var beard: Character?
     }
 
     /// Things an agent can carry: energy blades in four colours, a sword, a staff, a wand, an
     /// axe, and a donut.
     enum Held: CaseIterable {
         case blueBlade, greenBlade, redBlade, purpleBlade, sword, staff, wand, axe, donut
+        /// A longbow, string and all; and a pink umbrella.
+        case longbow, umbrella
 
         /// The map, top to bottom, and which row the hand holds.
         fileprivate var map: (rows: [String], grip: Int) {
@@ -315,6 +429,10 @@ enum PixelArt {
                 return ([".GG.", "GGGo", "GGGo", ".GGo", "...o", "...o", "...o", "...o", "...o", "...o"], 7)
             case .donut:
                 return ([".PPPP.", "PPYPPP", "PP..PP", "PPPYPP", ".oooo."], 2)
+            case .longbow:
+                return (["..oW", ".o.W", "o..W", "o..W", "o..W", "o..W", ".o.W", "..oW"], 4)
+            case .umbrella:
+                return (["..P..", ".PPP.", "PPPPP", "..o..", "..o..", "..o..", "..o..", ".oo.."], 5)
             }
         }
 
@@ -389,6 +507,8 @@ enum PixelArt {
         "Q": (0.80, 0.64, 0.40),                             // stubble
         "g": (0.20, 0.36, 0.20),                             // cloak green
         "k": (0.24, 0.15, 0.08),                             // dark brown hair, belts
+        "j": (0.10, 0.09, 0.11),                             // black hair
+        "x": (0.86, 0.40, 0.14),                             // ginger hair
         "y": (0.96, 0.86, 0.55),                             // fair hair
     ]
 
@@ -432,8 +552,11 @@ enum PixelArt {
         let key = AgentKey(source: source, color: ((colorIndex % palette.count) + palette.count) % palette.count, look: look)
         if let cached = agentCache[key] { return cached }
         let tint = paletteEntry(colorIndex)
+        // Yellow cartoon skin in the Toon style, and on The Simpsons whatever the style, so the
+        // agents there are always yellow. Theme changes clear this cache.
+        let yellow = style == .toon || Theme.current == .simpsons
         func frame(legs: [String], asleep: Bool) -> SKTexture {
-            texture(rows: compose(source, legs: legs, look: look, asleep: asleep, toon: style == .toon), tint: tint)
+            texture(rows: compose(source, legs: legs, look: look, asleep: asleep, toon: yellow), tint: tint)
         }
         let textures = AgentTextures(walk: legs.map { frame(legs: $0, asleep: false) },
                                      asleep: frame(legs: legs[0], asleep: true))
@@ -460,13 +583,35 @@ enum PixelArt {
 
     /// The app icon's mascot: the orange Codex-shaped agent in a crown, standing, drawn large.
     /// Returns the image and how many of its rows at the top are empty.
-    static func mascot(style: Style) -> (image: CGImage, emptyRowsOnTop: Int, rows: Int) {
-        let rows = compose(.codex, legs: legs[0], look: Look(hat: .crown), asleep: false)
+    /// The app icon's mascot: the orange agent in `look`, drawn large, and what it carries
+    /// drawn separately in its own colours. `emptyRowsOnTop` counts the agent's blank rows
+    /// above its hat; the carried item's top row is `hand - grip`, where `hand` is the row of
+    /// the agent's hand.
+    struct Mascot {
+        var image: CGImage
+        var rows: Int
+        var emptyRowsOnTop: Int
+        var hand: Int
+        var held: (image: CGImage, rows: Int, columns: Int, grip: Int)?
+    }
+
+    /// - Parameter cell: pixels per map cell in the smooth style; smaller for thumbnails.
+    static func mascot(style: Style, look: Look, yellow: Bool = false, cell: Int = 40) -> Mascot {
+        let rows = compose(.codex, legs: legs[0], look: look, asleep: false, toon: yellow || style == .toon)
         let tint = paletteEntry(1)
-        let texture = style == .pixel ? pixelTexture(rows: rows, tint: tint)
-                                      : smoothTexture(rows: rows, tint: tint, cell: 40)
+        func render(_ rows: [[Character]], _ tint: (CGFloat, CGFloat, CGFloat)) -> CGImage {
+            (style == .pixel ? pixelTexture(rows: rows, tint: tint) : smoothTexture(rows: rows, tint: tint, cell: cell)).cgImage()
+        }
         let empty = rows.firstIndex { $0.contains { $0 != "." } } ?? 0
-        return (texture.cgImage(), empty, rows.count)
+        var held: (CGImage, Int, Int, Int)?
+        if let item = look.held {
+            let map = item.map
+            let width = map.rows.map(\.count).max() ?? 1
+            let padded = map.rows.map { Array($0.padding(toLength: width, withPad: ".", startingAt: 0)) }
+            held = (render(padded, item.tint), map.rows.count, width, map.grip)
+        }
+        return Mascot(image: render(rows, tint), rows: rows.count, emptyRowsOnTop: empty, hand: hatRows + 10,
+                      held: held.map { (image: $0.0, rows: $0.1, columns: $0.2, grip: $0.3) })
     }
 
     /// The mascot as a menu bar icon: its silhouette, with the visor cut out so the eyes show.
@@ -540,15 +685,24 @@ enum PixelArt {
             }
         }
 
+        /// Swaps the colour keys in `rows` that are in `from` for `to`.
+        func tinted(_ rows: [String], _ from: String, _ to: Character?) -> [String] {
+            guard let to else { return rows }
+            return rows.map { String($0.map { from.contains($0) ? to : $0 }) }
+        }
         if let hat = look.hat {
             // Antennae would poke through the hat.
             for row in 0..<headTop { canvas[row] = Array(repeating: ".", count: agentColumns) }
-            overlay(hat.overlay.rows, at: headTop + hat.overlay.offset)
+            let hairstyles: [Hat] = [.spikyHair, .messyHair, .longHair, .curlyHair, .ponytail, .buns]
+            let rows = hairstyles.contains(hat) ? tinted(hat.overlay.rows, "kyoO", look.hair) : hat.overlay.rows
+            overlay(rows, at: headTop + hat.overlay.offset)
         }
         for accessory in look.accessories {
             let placement = accessory.overlay
             let anchor = hatRows + (placement.fromEyes ? body.eyeTop : neckRow)
-            overlay(placement.rows, at: anchor + placement.offset)
+            let beards: [Accessory] = [.longBeard, .bushyBeard]
+            let rows = beards.contains(accessory) ? tinted(placement.rows, "WOo", look.beard) : placement.rows
+            overlay(rows, at: anchor + placement.offset)
         }
         return canvas
     }
@@ -769,6 +923,10 @@ enum PixelArt {
         case spectral
 
         var id: Self { self }
+
+        /// Whether `theme` offers this style (see `Theme.styles`). Hologram only comes with
+        /// Star Wars; Outlined, Glow, Parchment and Spectral are not offered.
+        func fits(_ theme: Theme) -> Bool { theme.styles.contains(self) }
 
         var label: String {
             switch self {

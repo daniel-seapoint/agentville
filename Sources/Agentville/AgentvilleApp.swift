@@ -44,11 +44,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
-        // The bundled app gets its icon from its Info.plist. A bare executable (`swift run`)
-        // has none, so give the Dock the same artwork.
-        if Bundle.main.bundleURL.pathExtension != "app", let icon = AppIcon.render(style: .smooth) {
-            NSApp.applicationIconImage = NSImage(cgImage: icon, size: NSSize(width: 512, height: 512))
-        }
+        // The icon the user picked, or for a bare executable (`swift run`), which has no icon of
+        // its own, the default one.
+        controller.applyAppIcon()
         showWindow()
     }
 

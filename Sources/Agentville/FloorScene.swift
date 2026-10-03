@@ -156,6 +156,7 @@ final class FloorScene: SKScene {
 
     func sync(_ everyone: [AgentSnapshot]) {
         allAgents = everyone
+        Casting.shared.release(keeping: Set(everyone.map(\.id)))
         let newAgents = everyone.filter { !hiddenSources.contains($0.source) }
         agents = newAgents
         let ids = Set(newAgents.map(\.id))
@@ -219,6 +220,26 @@ final class FloorScene: SKScene {
         legend.position = CGPoint(x: button.minX - 12 - legendWidth, y: button.midY)
     }
 
+    /// Names the ambience's still decorations (candles, windows, stars), which are cleared from
+    /// round the break note and the empty state so their text is easy to read.
+    static let fixedDecor = "fixedDecor"
+    private var clearedFor = ""
+
+    /// Hides the still decorations behind whichever message is showing: the break note while
+    /// everyone is idle, the empty state while nobody is here.
+    private func clearAroundMessages(onBreak: Bool, empty: Bool) {
+        let key = "\(onBreak)-\(empty)-\(ambienceFor)-\(breakNote.position)-\(emptyState.position)"
+        guard key != clearedFor else { return }
+        clearedFor = key
+        var zones: [CGRect] = []
+        if onBreak { zones.append(breakNote.calculateAccumulatedFrame().insetBy(dx: -22, dy: -14)) }
+        if empty { zones.append(emptyState.calculateAccumulatedFrame().insetBy(dx: -22, dy: -14)) }
+        for node in ambience.children where node.name == Self.fixedDecor {
+            let frame = node.calculateAccumulatedFrame()
+            node.isHidden = zones.contains { $0.intersects(frame) }
+        }
+    }
+
     private func refreshHeader() {
         let topLevel = agents.filter { !$0.isSubagent }
         let working = topLevel.filter(\.isWorking).count
@@ -235,8 +256,11 @@ final class FloorScene: SKScene {
         countLabel.attributedText = .label(text + "  ▾", size: 12, weight: .semibold,
                                            color: Theme.colors.buttonInk.withAlphaComponent(0.95))
         positionLegend()
-        emptyState.setVisible(allAgents.isEmpty)
-        breakNote.setVisible(!topLevel.isEmpty && working == 0)
+        let empty = allAgents.isEmpty
+        emptyState.setVisible(empty)
+        let onBreak = !topLevel.isEmpty && working == 0
+        breakNote.setVisible(onBreak)
+        clearAroundMessages(onBreak: onBreak, empty: empty)
         for (stage, node) in stations {
             node.isActive = agents.contains { $0.isWorking && $0.stage == stage }
         }
@@ -324,6 +348,239 @@ final class FloorScene: SKScene {
         // The middle couch has one of each beside it, just outside its sitter's things.
         place(.lamp, x: size.width / 2 - 62)
         place(.plant, x: size.width / 2 + 62)
+        if Theme.current == .shire { buildHillHouses() }
+    }
+
+    /// The Shire's lounge: a grassy hill along its back, dug into with round-doored houses with
+    /// plastered fronts, brick arches, round windows, lanterns and flower pots, and chimneys
+    /// puffing on the hilltop. Behind the furniture and the agents.
+    private func buildHillHouses() {
+        let hill = SKNode()
+        hill.zPosition = -0.5
+        furniture.addChild(hill)
+        let top = Metrics.loungeTop - 10
+        let base: CGFloat = 92
+        let left: CGFloat = 26
+        let right = size.width - 26
+
+        // The hill: a long mound whose top rolls in gentle humps.
+        let mound = CGMutablePath()
+        mound.move(to: CGPoint(x: left, y: base))
+        let humps = max(3, Int((right - left) / 220))
+        for hump in 0..<humps {
+            let x0 = left + (right - left) * CGFloat(hump) / CGFloat(humps)
+            let x1 = left + (right - left) * CGFloat(hump + 1) / CGFloat(humps)
+            let peak = top - (hump.isMultiple(of: 2) ? 0 : 14)
+            mound.addLine(to: CGPoint(x: x0, y: top - 26))
+            mound.addQuadCurve(to: CGPoint(x: x1, y: top - 26), control: CGPoint(x: (x0 + x1) / 2, y: peak + 20))
+        }
+        mound.addLine(to: CGPoint(x: right, y: base))
+        mound.closeSubpath()
+        let grass = SKShapeNode(path: mound)
+        grass.fillColor = NSColor(srgbRed: 0.36, green: 0.58, blue: 0.24, alpha: 1)
+        grass.strokeColor = NSColor(srgbRed: 0.24, green: 0.42, blue: 0.15, alpha: 1)
+        grass.lineWidth = 2
+        hill.addChild(grass)
+
+        // The houses, built into the hillside: a yellow plastered front under a curved wooden
+        // eave with grass growing over it, a round door in a brick arch standing a little
+        // open, round leaded windows either side, a lantern over the door, flower pots and
+        // bushes round the step, and a chimney up on the grass.
+        let doors: [NSColor] = [
+            NSColor(srgbRed: 0.20, green: 0.46, blue: 0.24, alpha: 1), // green
+            NSColor(srgbRed: 0.86, green: 0.68, blue: 0.20, alpha: 1), // yellow
+            NSColor(srgbRed: 0.62, green: 0.18, blue: 0.14, alpha: 1), // red
+            NSColor(srgbRed: 0.20, green: 0.34, blue: 0.60, alpha: 1), // blue
+        ]
+        let plaster = NSColor(srgbRed: 0.88, green: 0.74, blue: 0.42, alpha: 1)
+        let wood = NSColor(srgbRed: 0.42, green: 0.27, blue: 0.13, alpha: 1)
+        let brick = NSColor(srgbRed: 0.72, green: 0.38, blue: 0.25, alpha: 1)
+        let mortar = NSColor(srgbRed: 0.52, green: 0.30, blue: 0.20, alpha: 1)
+        let leaf = NSColor(srgbRed: 0.22, green: 0.42, blue: 0.16, alpha: 1)
+        let blooms: [NSColor] = [
+            NSColor(srgbRed: 0.95, green: 0.45, blue: 0.55, alpha: 1), NSColor(srgbRed: 0.98, green: 0.92, blue: 0.95, alpha: 1),
+            NSColor(srgbRed: 0.70, green: 0.62, blue: 0.95, alpha: 1), NSColor(srgbRed: 0.98, green: 0.62, blue: 0.25, alpha: 1),
+        ]
+        func ring(_ radius: CGFloat, at centre: CGPoint, color: NSColor, width: CGFloat, bricks: Bool = false) {
+            let circle = CGPath(ellipseIn: CGRect(x: centre.x - radius, y: centre.y - radius, width: radius * 2, height: radius * 2),
+                                transform: nil)
+            let under = SKShapeNode(path: circle)
+            under.strokeColor = bricks ? mortar : color
+            under.lineWidth = width
+            hill.addChild(under)
+            guard bricks else { return }
+            // Bricks: the ring broken into short lengths, mortar showing between them.
+            let laid = SKShapeNode(path: circle.copy(dashingWithPhase: 0, lengths: [5, 1.5]))
+            laid.strokeColor = color
+            laid.lineWidth = width - 1
+            hill.addChild(laid)
+        }
+        let spots: [CGFloat] = [0.20, 0.40, 0.60, 0.80].map { left + (right - left) * $0 }
+        for (index, x) in spots.enumerated() {
+            let doorY = base + 26
+            let doorRadius: CGFloat = 19
+
+            // The plastered front, round-topped, set into the hill.
+            let front = CGMutablePath()
+            front.move(to: CGPoint(x: x - 58, y: base))
+            front.addLine(to: CGPoint(x: x - 58, y: doorY + 14))
+            front.addQuadCurve(to: CGPoint(x: x + 58, y: doorY + 14), control: CGPoint(x: x, y: doorY + 62))
+            front.addLine(to: CGPoint(x: x + 58, y: base))
+            front.closeSubpath()
+            let wall = SKShapeNode(path: front)
+            wall.fillColor = plaster
+            wall.strokeColor = .clear
+            hill.addChild(wall)
+
+            // The eave: a curved wooden beam over the front, on posts, with grass on top.
+            let eavePath = CGMutablePath()
+            eavePath.move(to: CGPoint(x: x - 62, y: doorY + 14))
+            eavePath.addQuadCurve(to: CGPoint(x: x + 62, y: doorY + 14), control: CGPoint(x: x, y: doorY + 64))
+            let turf = SKShapeNode(path: eavePath)
+            turf.strokeColor = NSColor(srgbRed: 0.34, green: 0.56, blue: 0.22, alpha: 1)
+            turf.lineWidth = 9
+            turf.lineCap = .round
+            turf.position = CGPoint(x: 0, y: 5)
+            hill.addChild(turf)
+            let eave = SKShapeNode(path: eavePath)
+            eave.strokeColor = wood
+            eave.lineWidth = 4
+            eave.lineCap = .round
+            hill.addChild(eave)
+            for postX: CGFloat in [-50, -20, 20, 50] {
+                let rise = 50 * (1 - (postX / 62) * (postX / 62)) * 0.5
+                let post = SKShapeNode(rect: CGRect(x: x + postX - 2, y: doorY + 14 + rise - 10, width: 4, height: 10))
+                post.fillColor = wood
+                post.strokeColor = .clear
+                hill.addChild(post)
+            }
+
+            // The door: dark inside, the door itself swung a little open, in a brick arch.
+            let inside = SKShapeNode(circleOfRadius: doorRadius)
+            inside.fillColor = NSColor(srgbRed: 0.12, green: 0.08, blue: 0.05, alpha: 1)
+            inside.strokeColor = .clear
+            inside.position = CGPoint(x: x, y: doorY)
+            hill.addChild(inside)
+            let door = SKShapeNode(ellipseOf: CGSize(width: doorRadius * 1.7, height: doorRadius * 2))
+            door.fillColor = doors[index % doors.count]
+            door.strokeColor = .clear
+            door.position = CGPoint(x: x + 4, y: doorY)
+            hill.addChild(door)
+            let planks = CGMutablePath()
+            for offset: CGFloat in [-8, -2.7, 2.7, 8] {
+                let half = sqrt(max(0, 1 - (offset / (doorRadius * 0.85)) * (offset / (doorRadius * 0.85)))) * doorRadius
+                planks.move(to: CGPoint(x: x + 4 + offset, y: doorY - half))
+                planks.addLine(to: CGPoint(x: x + 4 + offset, y: doorY + half))
+            }
+            let plankLines = SKShapeNode(path: planks)
+            plankLines.strokeColor = NSColor(white: 0, alpha: 0.22)
+            plankLines.lineWidth = 1
+            hill.addChild(plankLines)
+            let knob = SKShapeNode(circleOfRadius: 2.2)
+            knob.fillColor = NSColor(srgbRed: 0.98, green: 0.82, blue: 0.35, alpha: 1)
+            knob.strokeColor = .clear
+            knob.position = CGPoint(x: x + 4, y: doorY)
+            hill.addChild(knob)
+            ring(doorRadius + 4, at: CGPoint(x: x, y: doorY), color: brick, width: 6, bricks: true)
+
+            // Two stone steps up to the door.
+            for (step, width) in [(0, 46), (1, 36)] as [(Int, CGFloat)] {
+                let slab = SKShapeNode(rect: CGRect(x: x - width / 2, y: base - 7 + CGFloat(step) * 5, width: width, height: 5),
+                                       cornerRadius: 2)
+                slab.fillColor = NSColor(srgbRed: 0.66, green: 0.62, blue: 0.54, alpha: 1)
+                slab.strokeColor = NSColor(srgbRed: 0.45, green: 0.42, blue: 0.36, alpha: 1)
+                slab.lineWidth = 0.8
+                hill.addChild(slab)
+            }
+
+            // A lantern hanging over the door, glowing.
+            let lantern = SKShapeNode(rect: CGRect(x: x - 3, y: doorY + doorRadius + 11, width: 6, height: 7), cornerRadius: 1.5)
+            lantern.fillColor = NSColor(srgbRed: 1, green: 0.86, blue: 0.48, alpha: 1)
+            lantern.strokeColor = NSColor(white: 0.15, alpha: 1)
+            lantern.lineWidth = 1
+            hill.addChild(lantern)
+            let shine = SKShapeNode(circleOfRadius: 9)
+            shine.fillColor = NSColor(srgbRed: 1, green: 0.85, blue: 0.45, alpha: 0.18)
+            shine.strokeColor = .clear
+            shine.position = CGPoint(x: x, y: doorY + doorRadius + 14)
+            hill.addChild(shine)
+            shine.run(.repeatForever(.sequence([.fadeAlpha(to: 0.6, duration: 1.4 + Double(index) * 0.2), .fadeAlpha(to: 1, duration: 1.2)])))
+
+            // Round windows either side, in brick, with leaded panes and a warm glow.
+            for side: CGFloat in [-1, 1] {
+                let centre = CGPoint(x: x + side * 40, y: doorY + 7)
+                let pane = SKShapeNode(circleOfRadius: 8)
+                pane.fillColor = NSColor(srgbRed: 1, green: 0.84, blue: 0.50, alpha: 1)
+                pane.strokeColor = NSColor(srgbRed: 0.20, green: 0.42, blue: 0.24, alpha: 1)
+                pane.lineWidth = 2
+                pane.position = centre
+                hill.addChild(pane)
+                let lattice = CGMutablePath()
+                for d: CGFloat in [-4, 0, 4] {
+                    lattice.move(to: CGPoint(x: centre.x + d - 5, y: centre.y - 5))
+                    lattice.addLine(to: CGPoint(x: centre.x + d + 5, y: centre.y + 5))
+                    lattice.move(to: CGPoint(x: centre.x + d - 5, y: centre.y + 5))
+                    lattice.addLine(to: CGPoint(x: centre.x + d + 5, y: centre.y - 5))
+                }
+                let leading = SKShapeNode(path: lattice)
+                leading.strokeColor = NSColor(white: 0.2, alpha: 0.55)
+                leading.lineWidth = 0.7
+                hill.addChild(leading)
+                ring(11, at: centre, color: brick, width: 4, bricks: true)
+            }
+
+            // Bushes and flower pots round the step.
+            for side: CGFloat in [-1, 1] {
+                for (dx, radius) in [(52, 10), (61, 8), (44, 7)] as [(CGFloat, CGFloat)] {
+                    let bush = SKShapeNode(circleOfRadius: radius)
+                    bush.fillColor = leaf
+                    bush.strokeColor = .clear
+                    bush.position = CGPoint(x: x + side * dx, y: base + radius - 3)
+                    hill.addChild(bush)
+                }
+                let pot = CGMutablePath()
+                pot.addLines(between: [CGPoint(x: -6, y: 9), CGPoint(x: 6, y: 9), CGPoint(x: 4.5, y: 0), CGPoint(x: -4.5, y: 0)])
+                pot.closeSubpath()
+                let planter = SKShapeNode(path: pot)
+                planter.fillColor = NSColor(srgbRed: 0.78, green: 0.44, blue: 0.28, alpha: 1)
+                planter.strokeColor = .clear
+                planter.position = CGPoint(x: x + side * 30, y: base - 2)
+                hill.addChild(planter)
+                for flower in 0..<4 {
+                    let bloom = SKShapeNode(circleOfRadius: 2.4)
+                    bloom.fillColor = blooms[(flower + index + (side > 0 ? 2 : 0)) % blooms.count]
+                    bloom.strokeColor = .clear
+                    bloom.position = CGPoint(x: x + side * 30 + CGFloat(flower - 2) * 3 + 1.5, y: base + 9 + CGFloat(flower % 2) * 3)
+                    hill.addChild(bloom)
+                }
+            }
+
+            // A chimney up on the grass, with smoke curling up.
+            let side: CGFloat = index.isMultiple(of: 2) ? 1 : -1
+            let chimneyX = x - side * 30
+            let chimneyTop = top - 16
+            let chimney = SKShapeNode(rect: CGRect(x: chimneyX - 5, y: chimneyTop - 14, width: 10, height: 18), cornerRadius: 1.5)
+            chimney.fillColor = NSColor(srgbRed: 0.55, green: 0.40, blue: 0.30, alpha: 1)
+            chimney.strokeColor = NSColor(srgbRed: 0.35, green: 0.24, blue: 0.16, alpha: 1)
+            hill.addChild(chimney)
+            for puffIndex in 0..<3 {
+                let puff = SKShapeNode(circleOfRadius: 4)
+                puff.fillColor = NSColor(white: 0.92, alpha: 0.7)
+                puff.strokeColor = .clear
+                let home = CGPoint(x: chimneyX, y: chimneyTop + 6)
+                puff.position = home
+                puff.alpha = 0
+                puff.run(.sequence([
+                    .wait(forDuration: Double(puffIndex) * 1.1 + Double(index) * 0.4),
+                    .repeatForever(.sequence([
+                        .group([.move(to: home, duration: 0), .scale(to: 0.6, duration: 0)]),
+                        .group([.moveBy(x: 14, y: 34, duration: 3.3), .scale(to: 1.8, duration: 3.3),
+                                .sequence([.fadeAlpha(to: 0.8, duration: 0.6), .fadeOut(withDuration: 2.7)])]),
+                    ])),
+                ]))
+                hill.addChild(puff)
+            }
+        }
     }
 
     private func layoutAgents(animated: Bool) {
@@ -408,6 +665,509 @@ final class FloorScene: SKScene {
 
     // MARK: Ambience
 
+    /// A battered pointed hat with a crumpled face in its folds. Its tip flops over,
+    /// it rocks a little, and every few seconds the fold that is its mouth opens and closes.
+    private func addSortingHat(at base: CGPoint) {
+        let felt = NSColor(srgbRed: 0.42, green: 0.28, blue: 0.16, alpha: 1)
+        let shadow = NSColor(srgbRed: 0.24, green: 0.15, blue: 0.08, alpha: 1)
+        let hat = SKNode()
+        hat.position = base
+
+        let cone = CGMutablePath()
+        cone.addLines(between: [
+            CGPoint(x: -21, y: 6), CGPoint(x: -17, y: 22), CGPoint(x: -13, y: 34), CGPoint(x: -7, y: 46),
+            CGPoint(x: 0, y: 55), CGPoint(x: 9, y: 60), CGPoint(x: 19, y: 55), CGPoint(x: 13, y: 50),
+            CGPoint(x: 10, y: 41), CGPoint(x: 15, y: 27), CGPoint(x: 21, y: 6),
+        ])
+        cone.closeSubpath()
+        let body = SKShapeNode(path: cone)
+        body.fillColor = felt
+        body.strokeColor = shadow
+        body.lineWidth = 1.5
+        body.lineJoin = .round
+        hat.addChild(body)
+
+        let brim = SKShapeNode(ellipseOf: CGSize(width: 60, height: 13))
+        brim.fillColor = shadow
+        brim.strokeColor = NSColor(srgbRed: 0.16, green: 0.10, blue: 0.05, alpha: 1)
+        brim.position = CGPoint(x: 0, y: 4)
+        hat.addChild(brim)
+
+        // The face: two creased brows and a mouth fold.
+        for side: CGFloat in [-1, 1] {
+            let brow = CGMutablePath()
+            brow.move(to: CGPoint(x: side * 10, y: 25))
+            brow.addQuadCurve(to: CGPoint(x: side * 3, y: 23), control: CGPoint(x: side * 7, y: 28))
+            let crease = SKShapeNode(path: brow)
+            crease.strokeColor = shadow
+            crease.lineWidth = 2
+            crease.lineCap = .round
+            hat.addChild(crease)
+        }
+        let mouth = SKShapeNode(ellipseOf: CGSize(width: 14, height: 3))
+        mouth.fillColor = NSColor(srgbRed: 0.10, green: 0.06, blue: 0.03, alpha: 1)
+        mouth.strokeColor = .clear
+        mouth.position = CGPoint(x: 0, y: 14)
+        hat.addChild(mouth)
+
+        ambience.addChild(hat)
+        let rock = SKAction.sequence([.rotate(toAngle: 0.05, duration: 1.8), .rotate(toAngle: -0.05, duration: 1.8)])
+        rock.timingMode = .easeInEaseOut
+        hat.run(.repeatForever(rock))
+        let word = SKAction.sequence([.scaleY(to: 2.6, duration: 0.12), .scaleY(to: 1, duration: 0.12)])
+        mouth.run(.repeatForever(.sequence([.wait(forDuration: 4), .repeat(word, count: 4), .wait(forDuration: 1)])))
+    }
+
+    /// One floating candle, bobbing gently with its flame flickering.
+    private func addCandle(at position: CGPoint, scale: CGFloat, random: inout StableRandom) {
+        let candle = SKNode()
+        let wax = SKShapeNode(rect: CGRect(x: -2.5, y: -9, width: 5, height: 14), cornerRadius: 1)
+        wax.fillColor = NSColor(srgbRed: 0.96, green: 0.93, blue: 0.84, alpha: 1)
+        wax.strokeColor = .clear
+        candle.addChild(wax)
+        let glow = SKShapeNode(circleOfRadius: 9)
+        glow.fillColor = NSColor(srgbRed: 1, green: 0.75, blue: 0.3, alpha: 0.16)
+        glow.strokeColor = .clear
+        glow.position = CGPoint(x: 0, y: 9)
+        candle.addChild(glow)
+        let flame = SKShapeNode(ellipseOf: CGSize(width: 3.6, height: 6))
+        flame.fillColor = NSColor(srgbRed: 1, green: 0.82, blue: 0.35, alpha: 1)
+        flame.strokeColor = .clear
+        flame.position = CGPoint(x: 0, y: 8.5)
+        candle.addChild(flame)
+        candle.position = position
+        candle.setScale(scale)
+        candle.name = Self.fixedDecor
+        ambience.addChild(candle)
+        let bob = SKAction.sequence([.moveBy(x: 0, y: 5, duration: 1.6 + Double(random.unit())),
+                                     .moveBy(x: 0, y: -5, duration: 1.6 + Double(random.unit()))])
+        bob.timingMode = .easeInEaseOut
+        candle.run(.repeatForever(bob))
+        let flicker = SKAction.sequence([
+            .scaleY(to: 1.25, duration: 0.12), .scaleY(to: 0.9, duration: 0.09),
+            .scaleY(to: 1.1, duration: 0.15), .scaleY(to: 1, duration: 0.1),
+        ])
+        flame.run(.repeatForever(.sequence([flicker, .wait(forDuration: 0.2 + Double(random.unit()) * 0.6)])))
+        glow.run(.repeatForever(.sequence([.fadeAlpha(to: 0.6, duration: 0.3), .fadeAlpha(to: 1, duration: 0.4)])))
+    }
+
+    /// The great hall: stars twinkling overhead with a crescent moon, house banners and the
+    /// sorting hat hanging between the stations, floating candles lining the swimlanes with a
+    /// tall arched window under each file, and an owl gliding across every so often.
+    private func fillGreatHall(in frame: CGRect, random: inout StableRandom) {
+        let ground = Metrics.loungeTop + 2
+        let stone = NSColor(srgbRed: 0.16, green: 0.14, blue: 0.17, alpha: 1)
+        let warm = NSColor(srgbRed: 1, green: 0.78, blue: 0.42, alpha: 1)
+
+        // The enchanted ceiling: stars over the whole hall.
+        let skyBottom = ground
+        if frame.maxY > skyBottom {
+            for _ in 0..<Int(frame.width * (frame.maxY - skyBottom) / 2200) {
+                let star = SKShapeNode(circleOfRadius: 0.6 + random.unit() * 1.1)
+                star.fillColor = NSColor(white: 1, alpha: 1)
+                star.strokeColor = .clear
+                star.position = CGPoint(x: frame.minX + random.unit() * frame.width,
+                                        y: skyBottom + random.unit() * (frame.maxY - skyBottom))
+                star.alpha = 0.2 + random.unit() * 0.6
+                let pace = 1.2 + Double(random.unit()) * 2.4
+                star.run(.repeatForever(.sequence([.fadeAlpha(to: 0.08, duration: pace),
+                                                   .fadeAlpha(to: star.alpha, duration: pace)])))
+                star.name = Self.fixedDecor
+                ambience.addChild(star)
+            }
+        }
+        // A crescent moon: a pale disc with a sky-coloured one laid over it.
+        let moonAt = CGPoint(x: frame.midX + frame.width * 0.28, y: min(frame.maxY - 150, ground + 260))
+        let moon = SKShapeNode(circleOfRadius: 13)
+        moon.fillColor = NSColor(srgbRed: 1, green: 0.96, blue: 0.82, alpha: 0.9)
+        moon.strokeColor = .clear
+        moon.position = moonAt
+        ambience.addChild(moon)
+        let bite = SKShapeNode(circleOfRadius: 12)
+        bite.fillColor = Theme.colors.panel
+        bite.strokeColor = .clear
+        bite.position = CGPoint(x: moonAt.x + 6, y: moonAt.y + 4)
+        ambience.addChild(bite)
+
+        // The swimlanes: one column per station. Their edges are where the candles hang, with a
+        // window below each file of candles.
+        let stages = Stage.allCases
+        let spacing = stages.count > 1 ? stationX(stages[1]) - stationX(stages[0]) : 160
+        var laneEdges = [stationX(stages[0]) - spacing / 2]
+        laneEdges += (0..<(stages.count - 1)).map { (stationX(stages[$0]) + stationX(stages[$0 + 1])) / 2 }
+        laneEdges.append(stationX(stages[stages.count - 1]) + spacing / 2)
+        let windowWidth = min(48, spacing * 0.32)
+        laneEdges = laneEdges.filter { $0 - windowWidth / 2 > frame.minX + 8 && $0 + windowWidth / 2 < frame.maxX - 8 }
+
+        // A tall arched window glowing with firelight in each file of candles, halfway up the
+        // lane between the lounge and the stations.
+        let stationTop = size.height - Metrics.stationY + 28
+        let windowHeight: CGFloat = 100
+        let windowBase = (ground + stationTop) / 2 - windowHeight / 2
+        for centre in laneEdges {
+            let width = windowWidth
+            let height = windowHeight
+            let window = CGMutablePath()
+            window.move(to: CGPoint(x: centre - width / 2, y: windowBase))
+            window.addLine(to: CGPoint(x: centre - width / 2, y: windowBase + height - width / 2))
+            window.addArc(center: CGPoint(x: centre, y: windowBase + height - width / 2), radius: width / 2,
+                          startAngle: .pi, endAngle: 0, clockwise: true)
+            window.addLine(to: CGPoint(x: centre + width / 2, y: windowBase))
+            window.closeSubpath()
+            let frameNode = SKShapeNode(path: window)
+            frameNode.fillColor = warm.withAlphaComponent(0.16)
+            frameNode.strokeColor = stone.blended(withFraction: 0.5, of: warm) ?? stone
+            frameNode.lineWidth = 3
+            frameNode.name = Self.fixedDecor
+            ambience.addChild(frameNode)
+            // Leading between the panes.
+            let leading = CGMutablePath()
+            leading.move(to: CGPoint(x: centre, y: windowBase))
+            leading.addLine(to: CGPoint(x: centre, y: windowBase + height))
+            for pane in 1...3 {
+                let y = windowBase + (height - width / 2) * CGFloat(pane) / 4
+                leading.move(to: CGPoint(x: centre - width / 2, y: y))
+                leading.addLine(to: CGPoint(x: centre + width / 2, y: y))
+            }
+            let lines = SKShapeNode(path: leading)
+            lines.strokeColor = stone
+            lines.lineWidth = 1.5
+            lines.name = Self.fixedDecor
+            ambience.addChild(lines)
+            frameNode.run(.repeatForever(.sequence([
+                .fadeAlpha(to: 0.75, duration: 1.8 + Double(random.unit())), .fadeAlpha(to: 1, duration: 1.6),
+            ])))
+        }
+
+        // The four house banners hang in the gaps between the stations, leaving the middle gap
+        // empty so they sit in pairs either side. Each has a trim stripe, a crest and a
+        // swallowtail hem, on a gold rod level with the tops of the station tiles.
+        let banners = Theme.colors.banners.isEmpty ? [Theme.colors.activeStation] : Theme.colors.banners
+        let trims: [NSColor] = [
+            NSColor(srgbRed: 0.95, green: 0.78, blue: 0.30, alpha: 1), // gold
+            NSColor(srgbRed: 0.80, green: 0.82, blue: 0.86, alpha: 1), // silver
+            NSColor(srgbRed: 0.80, green: 0.55, blue: 0.30, alpha: 1), // bronze
+            NSColor(srgbRed: 0.10, green: 0.09, blue: 0.08, alpha: 1), // black
+        ]
+        let middle = (stages.count - 1) / 2
+        let gaps = (0..<(stages.count - 1)).filter { $0 != middle }
+        let bannerLength: CGFloat = 104
+        for (house, gap) in gaps.prefix(4).enumerated() {
+            let a = stationX(stages[gap]), b = stationX(stages[gap + 1])
+            let width = max(14, min(32, (b - a) - 84 - 14))
+            // Drawn round the middle of its rod, so it sways from there.
+            let banner = SKNode()
+            banner.position = CGPoint(x: (a + b) / 2, y: stationTop)
+            let cloth = CGMutablePath()
+            cloth.addLines(between: [
+                CGPoint(x: -width / 2, y: 0), CGPoint(x: width / 2, y: 0), CGPoint(x: width / 2, y: -bannerLength),
+                CGPoint(x: 0, y: -bannerLength + 12), CGPoint(x: -width / 2, y: -bannerLength),
+            ])
+            cloth.closeSubpath()
+            let fabric = SKShapeNode(path: cloth)
+            fabric.fillColor = banners[house % banners.count]
+            fabric.strokeColor = trims[house % trims.count]
+            fabric.lineWidth = 2
+            banner.addChild(fabric)
+            let stripe = SKShapeNode(rect: CGRect(x: -width / 2, y: -16, width: width, height: 4))
+            stripe.fillColor = trims[house % trims.count]
+            stripe.strokeColor = .clear
+            banner.addChild(stripe)
+            let crest = SKShapeNode(circleOfRadius: width * 0.2)
+            crest.fillColor = trims[house % trims.count]
+            crest.strokeColor = .clear
+            crest.position = CGPoint(x: 0, y: -34)
+            banner.addChild(crest)
+            let rod = SKShapeNode(rect: CGRect(x: -width / 2 - 4, y: 0, width: width + 8, height: 3), cornerRadius: 1.5)
+            rod.fillColor = warm
+            rod.strokeColor = .clear
+            banner.addChild(rod)
+            ambience.addChild(banner)
+            // A slow sway, as if in a draught.
+            let sway = SKAction.sequence([.rotate(toAngle: 0.03, duration: 2.2), .rotate(toAngle: -0.03, duration: 2.2)])
+            sway.timingMode = .easeInEaseOut
+            banner.run(.repeatForever(sway))
+        }
+
+        // In the middle gap, where there is no banner, the old patched hat that sorts the
+        // pupils into their houses, rocking gently and now and then muttering.
+        let hatGap = (stationX(stages[middle]) + stationX(stages[middle + 1])) / 2
+        addSortingHat(at: CGPoint(x: hatGap, y: stationTop - 62))
+
+        // The floating candles line the swimlanes: a file of them down each gap between the
+        // stations' columns and along both outer edges, so they frame the agents' lanes
+        // without hanging in front of anyone.
+        let highest = stationTop - bannerLength - 26
+        let lowest = ground + 22
+        let rows = max(1, Int((highest - lowest) / 52) + 1)
+        for (column, x) in laneEdges.enumerated() {
+            for row in 0..<rows {
+                let y = rows == 1 ? highest : highest - (highest - lowest) * CGFloat(row) / CGFloat(rows - 1)
+                // Every other column sits half a step lower, so the files do not line up in rows.
+                let stagger: CGFloat = column.isMultiple(of: 2) ? 0 : 14
+                let at = y - stagger
+                // The window takes the middle of the file.
+                if at > windowBase - 22 && at < windowBase + windowHeight + 8 { continue }
+                addCandle(at: CGPoint(x: x, y: at), scale: 0.85, random: &random)
+            }
+        }
+
+        // An owl gliding across the hall now and then, wings beating.
+        let owl = SKNode()
+        let body = SKShapeNode(ellipseOf: CGSize(width: 12, height: 9))
+        body.fillColor = NSColor(srgbRed: 0.93, green: 0.92, blue: 0.88, alpha: 1)
+        body.strokeColor = .clear
+        owl.addChild(body)
+        for side: CGFloat in [-1, 1] {
+            let wing = SKShapeNode(ellipseOf: CGSize(width: 14, height: 4))
+            wing.fillColor = NSColor(srgbRed: 0.86, green: 0.84, blue: 0.80, alpha: 1)
+            wing.strokeColor = .clear
+            wing.position = CGPoint(x: side * 9, y: 2)
+            let up = SKAction.rotate(toAngle: side * 0.6, duration: 0.18)
+            let down = SKAction.rotate(toAngle: -side * 0.3, duration: 0.18)
+            wing.run(.repeatForever(.sequence([up, down])))
+            owl.addChild(wing)
+        }
+        owl.alpha = 0
+        let flightY = min(frame.maxY - 120, ground + 230)
+        owl.position = CGPoint(x: frame.minX - 30, y: flightY)
+        ambience.addChild(owl)
+        let glide = SKAction.moveBy(x: frame.width + 60, y: -30, duration: 7)
+        owl.run(.repeatForever(.sequence([
+            .wait(forDuration: 6),
+            .move(to: CGPoint(x: frame.minX - 30, y: flightY), duration: 0),
+            .fadeIn(withDuration: 0.2),
+            .group([glide, .sequence([.moveBy(x: 0, y: 12, duration: 3.5), .moveBy(x: 0, y: -12, duration: 3.5)])]),
+            .fadeOut(withDuration: 0.2),
+        ])))
+    }
+
+    /// The Shire: rolling hills the whole way up the floor, wildflowers dotted through the
+    /// grass, and butterflies flitting about.
+    private func fillShire(in frame: CGRect, random: inout StableRandom) {
+        // Rolling hills the whole way up the floor: ridge after ridge, the far ones paler and
+        // the near ones a deeper green, each covering the foot of the one behind it.
+        let ground = Metrics.loungeTop + 2
+        let layers = 3
+        let far = (r: CGFloat(0.60), g: CGFloat(0.78), b: CGFloat(0.40))
+        let near = (r: CGFloat(0.34), g: CGFloat(0.54), b: CGFloat(0.22))
+        for layer in 0..<layers {
+            let depth = CGFloat(layer) / CGFloat(max(layers - 1, 1))
+            let ridge = frame.maxY - 26 - (frame.maxY - 26 - ground - 30) * depth
+            let path = CGMutablePath()
+            path.move(to: CGPoint(x: frame.minX, y: ground))
+            var y = ridge + (random.unit() - 0.5) * 20
+            path.addLine(to: CGPoint(x: frame.minX, y: y))
+            let humps = 1 + Int(random.unit() * 2)
+            let width = frame.width / CGFloat(humps)
+            for hump in 0..<humps {
+                let x0 = frame.minX + width * CGFloat(hump)
+                let next = ridge + (random.unit() - 0.5) * 20
+                let lift = 18 + random.unit() * 22
+                path.addQuadCurve(to: CGPoint(x: x0 + width, y: next),
+                                  control: CGPoint(x: x0 + width * (0.35 + random.unit() * 0.3), y: max(y, next) + lift))
+                y = next
+            }
+            path.addLine(to: CGPoint(x: frame.maxX, y: ground))
+            path.closeSubpath()
+            let hill = SKShapeNode(path: path)
+            hill.fillColor = NSColor(srgbRed: far.r + (near.r - far.r) * depth, green: far.g + (near.g - far.g) * depth,
+                                     blue: far.b + (near.b - far.b) * depth, alpha: 1)
+            hill.strokeColor = NSColor(srgbRed: 0.26, green: 0.44, blue: 0.16, alpha: 0.6)
+            hill.lineWidth = 1.5
+            ambience.addChild(hill)
+        }
+
+        let petals: [NSColor] = [
+            NSColor(srgbRed: 1, green: 0.95, blue: 0.55, alpha: 1), NSColor(white: 1, alpha: 1),
+            NSColor(srgbRed: 0.95, green: 0.55, blue: 0.70, alpha: 1), NSColor(srgbRed: 0.65, green: 0.70, blue: 1, alpha: 1),
+        ]
+        for index in 0..<Int(frame.width * frame.height / 5200) {
+            let flower = SKShapeNode(circleOfRadius: 1.4 + random.unit())
+            flower.fillColor = petals[index % petals.count]
+            flower.strokeColor = .clear
+            flower.alpha = 0.8
+            flower.position = CGPoint(x: frame.minX + random.unit() * frame.width,
+                                      y: Metrics.loungeTop + 6 + random.unit() * (frame.maxY - Metrics.loungeTop - 6))
+            flower.name = Self.fixedDecor
+            ambience.addChild(flower)
+        }
+        let wings: [NSColor] = [
+            NSColor(srgbRed: 1, green: 0.85, blue: 0.30, alpha: 1), NSColor(white: 1, alpha: 1),
+            NSColor(srgbRed: 0.95, green: 0.55, blue: 0.25, alpha: 1),
+        ]
+        for index in 0..<max(4, Int(frame.width / 160)) {
+            let butterfly = SKNode()
+            for side: CGFloat in [-1, 1] {
+                let wing = SKShapeNode(ellipseOf: CGSize(width: 6, height: 7))
+                wing.fillColor = wings[index % wings.count]
+                wing.strokeColor = .clear
+                wing.position = CGPoint(x: side * 3, y: 0)
+                wing.run(.repeatForever(.sequence([.scaleX(to: 0.2, duration: 0.12), .scaleX(to: 1, duration: 0.12)])))
+                butterfly.addChild(wing)
+            }
+            butterfly.position = CGPoint(x: frame.minX + random.unit() * frame.width,
+                                         y: Metrics.loungeTop + 20 + random.unit() * (frame.maxY - Metrics.loungeTop - 80))
+            ambience.addChild(butterfly)
+            var moves: [SKAction] = []
+            for _ in 0..<4 {
+                let move = SKAction.moveBy(x: (random.unit() - 0.5) * 120, y: (random.unit() - 0.5) * 60,
+                                           duration: 2.5 + Double(random.unit()) * 2)
+                move.timingMode = .easeInEaseOut
+                moves += [move, move.reversed()]
+            }
+            butterfly.run(.repeatForever(.sequence(moves)))
+        }
+    }
+
+    /// Mordor: a smouldering mountain on the right, a dark tower on the left with a burning eye
+    /// at its top, ash drifting down and embers rising. Everything stands on the lounge's roof
+    /// line, behind the agents.
+    private func fillMordor(in frame: CGRect, random: inout StableRandom) {
+        let ground = Metrics.loungeTop + 2
+        let rock = NSColor(srgbRed: 0.10, green: 0.045, blue: 0.035, alpha: 1)
+        let fire = NSColor(srgbRed: 1, green: 0.50, blue: 0.12, alpha: 1)
+
+        // A red glow along the horizon, as if the whole land were smouldering. Stacked bands,
+        // each fainter than the one below, so it fades out softly.
+        let horizon = SKNode()
+        for band in 0..<8 {
+            let strip = SKShapeNode(rect: CGRect(x: frame.minX, y: ground + CGFloat(band) * 14, width: frame.width, height: 14))
+            strip.fillColor = NSColor(srgbRed: 0.85, green: 0.18, blue: 0.04, alpha: 0.12 * (1 - CGFloat(band) / 8))
+            strip.strokeColor = .clear
+            horizon.addChild(strip)
+        }
+        horizon.run(.repeatForever(.sequence([.fadeAlpha(to: 0.6, duration: 2.4), .fadeAlpha(to: 1, duration: 2.4)])))
+        ambience.addChild(horizon)
+
+        // The mountain, with lava glowing in its crater and running down one flank.
+        let peakX = frame.maxX - min(230, frame.width * 0.2)
+        let mountain = CGMutablePath()
+        mountain.addLines(between: [
+            CGPoint(x: peakX - 170, y: ground), CGPoint(x: peakX - 70, y: ground + 92), CGPoint(x: peakX - 24, y: ground + 142),
+            CGPoint(x: peakX + 22, y: ground + 140), CGPoint(x: peakX + 64, y: ground + 96), CGPoint(x: peakX + 180, y: ground),
+        ])
+        mountain.closeSubpath()
+        let peak = SKShapeNode(path: mountain)
+        peak.fillColor = rock
+        peak.strokeColor = NSColor(srgbRed: 0.40, green: 0.10, blue: 0.04, alpha: 1)
+        peak.lineWidth = 1.5
+        ambience.addChild(peak)
+        let crater = SKShapeNode(ellipseOf: CGSize(width: 40, height: 9))
+        crater.fillColor = fire
+        crater.strokeColor = .clear
+        crater.position = CGPoint(x: peakX - 1, y: ground + 141)
+        ambience.addChild(crater)
+        let lava = CGMutablePath()
+        lava.addLines(between: [CGPoint(x: peakX + 8, y: ground + 138), CGPoint(x: peakX + 20, y: ground + 110),
+                                CGPoint(x: peakX + 12, y: ground + 84), CGPoint(x: peakX + 34, y: ground + 52),
+                                CGPoint(x: peakX + 28, y: ground + 24), CGPoint(x: peakX + 46, y: ground)])
+        let flow = SKShapeNode(path: lava)
+        flow.strokeColor = fire
+        flow.lineWidth = 3
+        flow.lineJoin = .round
+        ambience.addChild(flow)
+        for node in [crater, flow] {
+            node.run(.repeatForever(.sequence([.fadeAlpha(to: 0.55, duration: 1.3), .fadeAlpha(to: 1, duration: 1.1)])))
+        }
+        // Smoke rising from the crater.
+        for index in 0..<6 {
+            let puff = SKShapeNode(circleOfRadius: 9)
+            puff.fillColor = NSColor(srgbRed: 0.25, green: 0.18, blue: 0.16, alpha: 0.55)
+            puff.strokeColor = .clear
+            let home = CGPoint(x: peakX, y: ground + 150)
+            puff.position = home
+            puff.alpha = 0
+            puff.run(.sequence([
+                .wait(forDuration: Double(index) * 0.9),
+                .repeatForever(.sequence([
+                    .group([.move(to: home, duration: 0), .scale(to: 0.6, duration: 0)]),
+                    .group([.moveBy(x: -30 + random.unit() * 20, y: 90, duration: 5.4), .scale(to: 2.4, duration: 5.4),
+                            .sequence([.fadeAlpha(to: 0.8, duration: 1), .fadeOut(withDuration: 4.4)])]),
+                ])),
+            ]))
+            ambience.addChild(puff)
+        }
+
+        // The tower: a tall jagged spire whose two horns hold the eye between them.
+        let towerX = frame.minX + min(150, frame.width * 0.13)
+        let spire = CGMutablePath()
+        spire.addLines(between: [
+            CGPoint(x: towerX - 34, y: ground), CGPoint(x: towerX - 20, y: ground + 70), CGPoint(x: towerX - 15, y: ground + 150),
+            CGPoint(x: towerX - 22, y: ground + 196), CGPoint(x: towerX - 6, y: ground + 168), CGPoint(x: towerX + 6, y: ground + 168),
+            CGPoint(x: towerX + 22, y: ground + 196), CGPoint(x: towerX + 15, y: ground + 150), CGPoint(x: towerX + 20, y: ground + 70),
+            CGPoint(x: towerX + 34, y: ground),
+        ])
+        spire.closeSubpath()
+        let tower = SKShapeNode(path: spire)
+        tower.fillColor = rock
+        tower.strokeColor = NSColor(srgbRed: 0.30, green: 0.08, blue: 0.04, alpha: 1)
+        tower.lineWidth = 1.5
+        ambience.addChild(tower)
+
+        let eye = SKNode()
+        eye.position = CGPoint(x: towerX, y: ground + 184)
+        let halo = SKShapeNode(circleOfRadius: 30)
+        halo.fillColor = NSColor(srgbRed: 1, green: 0.35, blue: 0.05, alpha: 0.18)
+        halo.strokeColor = .clear
+        eye.addChild(halo)
+        let iris = SKShapeNode(ellipseOf: CGSize(width: 30, height: 14))
+        iris.fillColor = fire
+        iris.strokeColor = NSColor(srgbRed: 1, green: 0.85, blue: 0.40, alpha: 1)
+        iris.lineWidth = 1.5
+        eye.addChild(iris)
+        let pupil = SKShapeNode(ellipseOf: CGSize(width: 3.5, height: 12))
+        pupil.fillColor = NSColor(srgbRed: 0.05, green: 0.01, blue: 0, alpha: 1)
+        pupil.strokeColor = .clear
+        eye.addChild(pupil)
+        ambience.addChild(eye)
+        halo.run(.repeatForever(.sequence([.scale(to: 1.25, duration: 1.6), .scale(to: 1, duration: 1.6)])))
+        // The eye sweeps slowly across the floor, keeping watch on the agents.
+        let look = SKAction.sequence([
+            .moveTo(x: -8, duration: 2.5), .wait(forDuration: 1.2), .moveTo(x: 8, duration: 3), .wait(forDuration: 1.5),
+            .moveTo(x: 0, duration: 1.5), .wait(forDuration: 2),
+        ])
+        look.timingMode = .easeInEaseOut
+        pupil.run(.repeatForever(look))
+
+        // Ash drifting down over everything, and embers rising from the ground.
+        for _ in 0..<Int(frame.width * frame.height / 9000) {
+            let flake = SKShapeNode(circleOfRadius: 0.7 + random.unit() * 1.1)
+            flake.fillColor = NSColor(white: 0.62 + random.unit() * 0.2, alpha: 0.35 + random.unit() * 0.35)
+            flake.strokeColor = .clear
+            let y = frame.minY + random.unit() * frame.height
+            flake.position = CGPoint(x: frame.minX + random.unit() * frame.width, y: y)
+            ambience.addChild(flake)
+            let speed = 8 + random.unit() * 12
+            let sway = SKAction.sequence([.moveBy(x: 10, y: 0, duration: 2.2), .moveBy(x: -10, y: 0, duration: 2.2)])
+            sway.timingMode = .easeInEaseOut
+            flake.run(.repeatForever(sway))
+            flake.run(.sequence([
+                .moveTo(y: frame.minY, duration: Double((y - frame.minY) / speed)),
+                .repeatForever(.sequence([.moveTo(y: frame.maxY, duration: 0),
+                                          .moveTo(y: frame.minY, duration: Double(frame.height / speed))])),
+            ]))
+        }
+        for index in 0..<Int(frame.width / 45) {
+            let ember = SKShapeNode(circleOfRadius: 1 + random.unit())
+            ember.fillColor = NSColor(srgbRed: 1, green: 0.45 + random.unit() * 0.3, blue: 0.1, alpha: 1)
+            ember.strokeColor = .clear
+            let home = CGPoint(x: frame.minX + random.unit() * frame.width, y: ground + random.unit() * 40)
+            ember.position = home
+            ember.alpha = 0
+            let duration = 4 + Double(random.unit()) * 4
+            ember.run(.sequence([
+                .wait(forDuration: Double(index % 8) * 0.5),
+                .repeatForever(.sequence([
+                    .move(to: home, duration: 0),
+                    .group([.moveBy(x: (random.unit() - 0.5) * 50, y: 120 + random.unit() * 120, duration: duration),
+                            .sequence([.fadeAlpha(to: 0.9, duration: duration * 0.25), .fadeOut(withDuration: duration * 0.75)])]),
+                ])),
+            ]))
+            ambience.addChild(ember)
+        }
+    }
+
     /// Fills the floor with the theme's ambience. Placed from a fixed seed, so it looks the same
     /// every time, and only rebuilt when the floor changes size or theme.
     private func fillAmbience(in frame: CGRect) {
@@ -440,6 +1200,7 @@ final class FloorScene: SKScene {
             for _ in 0..<Int(area / 2600) {
                 let star = dot(0.6 + random.unit() * 1.1, NSColor(white: 1, alpha: 1))
                 star.position = point()
+                star.name = Self.fixedDecor
                 star.alpha = 0.25 + random.unit() * 0.6
                 let pace = 1.2 + Double(random.unit()) * 2.4
                 star.run(.repeatForever(.sequence([.fadeAlpha(to: 0.1, duration: pace),
@@ -573,6 +1334,7 @@ final class FloorScene: SKScene {
             for _ in 0..<Int(area / 3200) {
                 let star = dot(0.5 + random.unit() * 1, NSColor(white: 1, alpha: 1))
                 star.position = point()
+                star.name = Self.fixedDecor
                 star.alpha = 0.3 + random.unit() * 0.6
             }
             // Every so often the stars stretch into streaks flying out from the middle, as if
@@ -646,40 +1408,18 @@ final class FloorScene: SKScene {
                     ])),
                 ]))
             }
+        case .mordor:
+            fillMordor(in: frame, random: &random)
+        case .shire:
+            fillShire(in: frame, random: &random)
+        case .greatHall:
+            fillGreatHall(in: frame, random: &random)
         case .candles:
             // Candles hanging in the air above the floor, each bobbing gently, flames flickering.
             for _ in 0..<Int(frame.width / 55) {
-                let candle = SKNode()
-                let wax = SKShapeNode(rect: CGRect(x: -2.5, y: -9, width: 5, height: 14), cornerRadius: 1)
-                wax.fillColor = NSColor(srgbRed: 0.96, green: 0.93, blue: 0.84, alpha: 1)
-                wax.strokeColor = .clear
-                candle.addChild(wax)
-                let glow = SKShapeNode(circleOfRadius: 9)
-                glow.fillColor = NSColor(srgbRed: 1, green: 0.75, blue: 0.3, alpha: 0.16)
-                glow.strokeColor = .clear
-                glow.position = CGPoint(x: 0, y: 9)
-                candle.addChild(glow)
-                let flame = SKShapeNode(ellipseOf: CGSize(width: 3.6, height: 6))
-                flame.fillColor = NSColor(srgbRed: 1, green: 0.82, blue: 0.35, alpha: 1)
-                flame.strokeColor = .clear
-                flame.position = CGPoint(x: 0, y: 8.5)
-                candle.addChild(flame)
                 let x: CGFloat = frame.minX + 20 + random.unit() * (frame.width - 40)
                 let y: CGFloat = frame.minY + frame.height * (0.42 + random.unit() * 0.5)
-                candle.position = CGPoint(x: x, y: y)
-                let scale: CGFloat = 0.7 + random.unit() * 0.5
-                candle.setScale(scale)
-                ambience.addChild(candle)
-                let bob = SKAction.sequence([.moveBy(x: 0, y: 5, duration: 1.6 + Double(random.unit())),
-                                             .moveBy(x: 0, y: -5, duration: 1.6 + Double(random.unit()))])
-                bob.timingMode = .easeInEaseOut
-                candle.run(.repeatForever(bob))
-                let flicker = SKAction.sequence([
-                    .scaleY(to: 1.25, duration: 0.12), .scaleY(to: 0.9, duration: 0.09),
-                    .scaleY(to: 1.1, duration: 0.15), .scaleY(to: 1, duration: 0.1),
-                ])
-                flame.run(.repeatForever(.sequence([flicker, .wait(forDuration: 0.2 + Double(random.unit()) * 0.6)])))
-                glow.run(.repeatForever(.sequence([.fadeAlpha(to: 0.6, duration: 0.3), .fadeAlpha(to: 1, duration: 0.4)])))
+                addCandle(at: CGPoint(x: x, y: y), scale: 0.7 + random.unit() * 0.5, random: &random)
             }
         case .scanlines:
             // Faint CRT lines, with a brighter band rolling slowly down the screen.

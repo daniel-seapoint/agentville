@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/icon.png" width="128" alt="Agentville icon: an orange agent wearing a crown"></p>
+<p align="center"><img src="docs/icon.gif" width="128" alt="The Agentville icon, dressed as characters from Star Wars, The Simpsons, Lord of the Rings and Harry Potter"></p>
 
 <p align="center"><img src="docs/providers.png" width="268" alt="Claude, Codex and Copilot"></p>
 
@@ -11,9 +11,9 @@ A Mac app that turns every running session into a little cartoon agent.
 
 ![Agents moving between the Plan, Research, Build, Verify, Review and Ship stations](docs/working.gif)
 
-<p align="center">Dress the floor up in twelve themes and draw the agents in eight styles.</p>
+<p align="center">Dress the floor up in thirteen themes and draw the agents in four styles.</p>
 
-![The floor cycling through all twelve themes](docs/themes.gif)
+![The floor cycling through the themes](docs/themes.gif)
 
 ## What you get
 
@@ -29,14 +29,16 @@ A Mac app that turns every running session into a little cartoon agent.
 
 ![The empty workshop](docs/empty.gif)
 
-**Themes** — twelve looks for the floor, from the palette menu in the title bar: Workshop,
-Daylight, Forest, Ocean, Space, Sunset, Terminal and Winter, plus four fan tributes: The
-Simpsons, Star Wars, Lord of the Rings and Harry Potter. Each has its own colours and a little
+**Themes** — thirteen looks for the floor, from the theme button in the title bar: Workshop,
+Daylight, Forest, Ocean, Space, Sunset, Terminal and Winter, plus fan tributes to The Simpsons,
+Star Wars, Lord of the Rings and Harry Potter. Lord of the Rings has two scenes, Mordor and the
+Shire, picked in a section of their own once it is chosen. Each has its own colours and a little
 ambience: fireflies in the forest, bubbles in the ocean, stars, embers, snow, CRT scanlines,
-cartoon clouds over a sunny suburb, a jump to lightspeed, autumn leaves over a hillside with a
-burrow for a lounge, and floating candles in a great hall whose stations light up in four banner
-colours. Picking one of the four tributes also dresses the agents in costume and switches them
-to the style made for that world; going back to an ordinary theme puts your style back.
+cartoon clouds over a sunny suburb, a jump to lightspeed, ash and embers over a volcanic
+wasteland watched by a fiery eye, butterflies over green hills with round-doored hill houses for
+a lounge, and a great hall with an enchanted starry ceiling, glowing arched windows, house
+banners, a passing owl and floating candles, whose stations light up in four banner colours. The tributes are listed on their own, under Film & TV. Picking one dresses the
+agents in costume; going back to an everyday theme puts your style back.
 
 <table>
 <tr>
@@ -57,21 +59,23 @@ to the style made for that world; going back to an ordinary theme puts your styl
 </tr>
 <tr>
 <td><img src="docs/themes/simpsons.png" alt="The Simpsons theme, with Toon agents"><p align="center">The Simpsons</p></td>
-<td><img src="docs/themes/starWars.png" alt="Star Wars theme, with Hologram agents"><p align="center">Star Wars</p></td>
+<td><img src="docs/themes/starWars.png" alt="Star Wars theme"><p align="center">Star Wars</p></td>
 </tr>
 <tr>
-<td><img src="docs/themes/lordOfTheRings.png" alt="Lord of the Rings theme, with Parchment agents"><p align="center">Lord of the Rings</p></td>
-<td><img src="docs/themes/harryPotter.png" alt="Harry Potter theme, with Spectral agents"><p align="center">Harry Potter</p></td>
+<td><img src="docs/themes/lordOfTheRings.png" alt="Lord of the Rings: Mordor theme"><p align="center">Lord of the Rings: Mordor</p></td>
+<td><img src="docs/themes/shire.png" alt="Lord of the Rings: The Shire theme"><p align="center">Lord of the Rings: The Shire</p></td>
+</tr>
+<tr>
+<td><img src="docs/themes/harryPotter.png" alt="Harry Potter theme"><p align="center">Harry Potter</p></td>
+<td></td>
 </tr>
 </table>
 
-**Agent styles** — draw the agents smooth, as pixel art, with an outline, glowing, as
-yellow-skinned sitcom toons, as flickering blue holograms, in sepia ink on parchment, or as
-silvery sparkling apparitions. Same menu. Toon, Hologram, Parchment and Spectral come with The
-Simpsons, Star Wars, Lord of the Rings and Harry Potter themes and are shown here on them, but
-any style can be picked with any theme.
+**Agent styles** — every theme can draw the agents smooth or as pixel art, from the same menu.
+The everyday themes add yellow-skinned sitcom toons. The Simpsons starts in Toon, and its agents
+stay yellow in Smooth and Pixel too. Star Wars adds flickering blue holograms.
 
-![The agents cycling through all eight styles](docs/styles.gif)
+![The agents cycling through the styles](docs/styles.gif)
 
 <table>
 <tr>
@@ -79,27 +83,35 @@ any style can be picked with any theme.
 <td><img src="docs/styles/pixel.png" alt="Pixel art agents"><p align="center">Pixel</p></td>
 </tr>
 <tr>
-<td><img src="docs/styles/outlined.png" alt="Outlined agents"><p align="center">Outlined</p></td>
-<td><img src="docs/styles/glow.png" alt="Glowing agents"><p align="center">Glow</p></td>
-</tr>
-<tr>
 <td><img src="docs/styles/toon.png" alt="Toon agents on the The Simpsons theme"><p align="center">Toon</p></td>
 <td><img src="docs/styles/hologram.png" alt="Hologram agents on the Star Wars theme"><p align="center">Hologram</p></td>
 </tr>
-<tr>
-<td><img src="docs/styles/parchment.png" alt="Parchment agents on the Lord of the Rings theme"><p align="center">Parchment</p></td>
-<td><img src="docs/styles/spectral.png" alt="Spectral agents on the Harry Potter theme"><p align="center">Spectral</p></td>
-</tr>
 </table>
 
-**Costumes** — on the four fan-tribute themes everyone dresses for the world they are in:
+**App icon** — dress the app's own icon as your favourite character with the **App Icon** button
+in the title bar. It previews every character; pick one and choose **Use as App Icon**. The Dock
+and Finder both show it; pick **Crown (default)** to go back.
 
-- **Star Wars**: hooded robes, pilot helmets and capes, and an energy blade in blue, green,
-  red or purple.
-- **Harry Potter**: school robes, pointed hats, round glasses, striped scarves and a wand.
-- **Lord of the Rings**: a grey wizard with a long beard and a staff, fair-haired travellers in
-  cloaks with swords, and helmeted axe-bearers with bushy beards.
-- **The Simpsons**: everyday hair, shirts and ties, pearls, overalls and the odd donut.
+**Characters** — on the film and TV themes, agents are cast as the characters from that world.
+Each character is played by one agent at a time, so there is only ever one wizard; agents only
+play extras once every character is taken. Star characters under **Favourite characters** in the
+theme menu and they are shown first. Click an agent to see who it is playing.
+
+**The Simpsons** — everyone stays yellow, whichever style. Extras play townspeople.
+
+![Homer, Marge, Bart, Lisa, Maggie, Mr Burns, Ned Flanders, Milhouse and Krusty](docs/cast/cast-simpsons.png)
+
+**Star Wars** — extras play stormtroopers, pilots and Jedi.
+
+![Luke, Leia, Han, Chewbacca, Darth Vader, Obi-Wan, Rey, Kylo Ren and the Mandalorian](docs/cast/cast-starWars.png)
+
+**Lord of the Rings** — in both Mordor and the Shire. Extras play hobbits, elves and rangers.
+
+![Gandalf, Aragorn, Legolas, Gimli, Frodo, Sam, Merry, Pippin and Boromir](docs/cast/cast-middleEarth.png)
+
+**Harry Potter** — extras play pupils in school robes.
+
+![Dumbledore, Harry, Ron, Hermione, Hagrid, Snape, Neville, Luna and Draco](docs/cast/cast-harryPotter.png)
 
 **Wardrobe** — every agent gets its own look, kept for as long as the session lives: one of 35
 hats, hairstyles and helmets, glasses, a mustache or a beard, something round its neck, a
@@ -186,6 +198,42 @@ An agent's station is worked out from what its session is doing:
 | 🧪 Verify | running tests, linters or builds |
 | ✅ Review | looking at diffs and pull requests |
 | 🚀 Ship | committing, pushing or opening a pull request |
+
+## Built with
+
+A native Mac app in Swift, with no third-party dependencies.
+
+| | |
+|---|---|
+| **SpriteKit** | The floor itself: the agents walking between stations, their tools, the lounge, the weather and ambience, and the confetti. |
+| **SwiftUI** | The window's controls, the theme menu, the agent list and the close-up of an agent, and the menu bar item. |
+| **Core Graphics** | Draws every character. Agents, hats, beds and furniture are written as small grids of letters, one letter per colour, and painted into textures at launch, so there are no image files for them. |
+| **Swift Package Manager** | Builds the app and runs the tests; `scripts/bundle.sh` wraps the result into `Agentville.app`. |
+
+**How the characters are drawn**
+
+- **One drawing, several styles.** Each agent starts as a 12-wide grid of letters. *Pixel* paints
+  one hard square per letter. *Smooth* blurs each colour into a soft field and redraws the edges
+  where those fields meet, which rounds off the corners. *Toon* and *Hologram* are finishes on top
+  of Smooth: thick ink lines, or a flickering blue glow with scanlines.
+- **Outfits are random but stable.** Each agent's hat, accessory and costume are picked from a
+  hash of its session ID, so agents look different from one another but each keeps the same
+  look every time you open the app.
+- **Provider logos** are the official marks, recoloured at launch to sit on each provider's tile.
+
+**Reading the sessions**
+
+- Session logs are JSON Lines files, followed as they grow, the way `tail -f` does.
+- Codex thread names come from Codex's own SQLite database, opened read-only.
+- What an agent is doing is worked out from each tool call and shell command it makes; see the
+  station table above.
+
+**Around the app**
+
+- **XCTest** covers the log readers and the station logic.
+- **GitHub Actions** builds and tests every push, and regenerates the README's screenshots when
+  asked to.
+- **Python** with Pillow turns recorded frames into the GIFs.
 
 ## Good to know
 

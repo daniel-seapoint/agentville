@@ -8,13 +8,17 @@ cd "$(dirname "$0")/.."
 
 swift build -c release
 BIN="$(swift build -c release --show-bin-path)/Agentville"
-THEMES="workshop daylight forest ocean space sunset terminal winter simpsons starWars lordOfTheRings harryPotter"
-STYLES="smooth pixel outlined glow toon hologram parchment spectral"
+THEMES="workshop daylight forest ocean space sunset terminal winter simpsons starWars lordOfTheRings shire harryPotter"
+STYLES="smooth pixel toon hologram"
 WORK="$(mktemp -d)"
 mkdir -p docs/themes docs/styles
 
 # Every hat, accessory, pattern, colour and style on one sheet. Drawn offscreen.
 "$BIN" --wardrobe docs/wardrobe.png -theme workshop
+# The README's icon: the mascot dressed as characters from each film and TV world.
+"$BIN" --icon-gif docs/icon.gif -theme workshop
+# Each film and TV theme's cast, named. Drawn offscreen.
+"$BIN" --casts docs/cast -theme workshop -artStyle smooth
 
 # `-theme` and `-artStyle` are read as defaults for this run only, so they do not change the
 # saved settings. Forgetting the window's saved frame gives every picture the default size.
@@ -27,9 +31,6 @@ run() {
 style_for() {
     case "$1" in
         simpsons) echo toon ;;
-        starWars) echo hologram ;;
-        lordOfTheRings) echo parchment ;;
-        harryPotter) echo spectral ;;
         *) echo smooth ;;
     esac
 }
@@ -46,8 +47,6 @@ for style in $STYLES; do
     case "$style" in
         toon) theme=simpsons ;;
         hologram) theme=starWars ;;
-        parchment) theme=lordOfTheRings ;;
-        spectral) theme=harryPotter ;;
         *) theme=workshop ;;
     esac
     echo "Style: $style on $theme"

@@ -6,7 +6,7 @@ enum Theme: String, CaseIterable, Identifiable {
     case workshop, daylight, forest, ocean, space, sunset, terminal, winter
     /// Fan tributes to four film and TV worlds. Each dresses the agents in costume for that
     /// world (see `Persona.look(for:)`) and brings its own agent style with it.
-    case simpsons, starWars, lordOfTheRings, harryPotter
+    case simpsons, starWars, lordOfTheRings, shire, harryPotter
 
     var id: Self { self }
 
@@ -22,18 +22,52 @@ enum Theme: String, CaseIterable, Identifiable {
         case .winter: return "Winter"
         case .simpsons: return "The Simpsons"
         case .starWars: return "Star Wars"
-        case .lordOfTheRings: return "Lord of the Rings"
+        case .lordOfTheRings: return "Lord of the Rings: Mordor"
+        case .shire: return "Lord of the Rings: The Shire"
         case .harryPotter: return "Harry Potter"
         }
     }
 
-    /// The agent style that goes with this theme, picked along with it.
+    /// The film and TV tributes, as opposed to the everyday floors.
+    var isTribute: Bool {
+        switch self {
+        case .simpsons, .starWars, .lordOfTheRings, .shire, .harryPotter: return true
+        default: return false
+        }
+    }
+
+    /// The two Lord of the Rings scenes.
+    var isMiddleEarth: Bool { self == .lordOfTheRings || self == .shire }
+    /// How the theme is listed under Film & TV. Lord of the Rings is listed once there; which of
+    /// its two scenes is shown is picked in a section of its own (see `sceneLabel`).
+    var menuLabel: String { isMiddleEarth ? "Lord of the Rings" : label }
+    var sceneLabel: String { self == .shire ? "The Shire" : "Mordor" }
+    /// The Film & TV menu's entries: one per film or TV world.
+    static let filmAndTV: [Theme] = [.simpsons, .starWars, .lordOfTheRings, .harryPotter]
+    static let middleEarthScenes: [Theme] = [.lordOfTheRings, .shire]
+
+    /// The everyday floors, listed first in the menu.
+    static var everyday: [Theme] { allCases.filter { !$0.isTribute } }
+    /// The film and TV tributes, listed in a section of their own.
+    static var tributes: [Theme] { allCases.filter(\.isTribute) }
+
+    /// The agent styles offered with this theme. Every theme has Smooth and Pixel; the everyday
+    /// themes and The Simpsons add Toon, and Star Wars adds Hologram.
+    var styles: [PixelArt.Style] {
+        switch self {
+        case .simpsons: return [.toon, .smooth, .pixel]
+        case .starWars: return [.smooth, .pixel, .hologram]
+        case .lordOfTheRings, .shire, .harryPotter: return [.smooth, .pixel]
+        default: return [.smooth, .pixel, .toon]
+        }
+    }
+
+    /// The style a film or TV theme switches the agents to when it is picked: Toon for The
+    /// Simpsons and Smooth for the rest. The other styles it offers can still be chosen.
     var agentStyle: PixelArt.Style? {
         switch self {
         case .simpsons: return .toon
-        case .starWars: return .hologram
-        case .lordOfTheRings: return .parchment
-        case .harryPotter: return .spectral
+        case .starWars, .lordOfTheRings, .shire, .harryPotter: return .smooth
         default: return nil
         }
     }
@@ -56,8 +90,16 @@ enum Theme: String, CaseIterable, Identifiable {
         case hyperspace
         /// Autumn leaves tumbling down on the wind.
         case leaves
+        /// Rolling green countryside: wildflowers in the grass and butterflies on the breeze.
+        case shire
+        /// A volcanic wasteland: a smouldering mountain, a dark tower with a fiery eye on top,
+        /// ash drifting down and embers rising.
+        case mordor
         /// Candles floating overhead, their flames flickering.
         case candles
+        /// A great hall at night: a starry enchanted ceiling, tall glowing windows with house
+        /// banners between them, an owl now and then, and the floating candles.
+        case greatHall
     }
 
     struct Colors {
@@ -194,21 +236,35 @@ enum Theme: String, CaseIterable, Identifiable {
                           button: rgb(0.30, 0.04, 0.05), buttonStroke: rgb(1, 0.25, 0.22), buttonInk: rgb(1, 0.93, 0.90),
                           link: gold, bubble: rgb(0.01, 0.01, 0.03, 0.95), bubbleInk: rgb(0.95, 0.95, 1),
                           isLight: false, ambience: .hyperspace)
+        case .shire:
+            // Green rolling countryside on a sunny day: grass for a floor, signposts of
+            // painted wood, and a hillside of round-doored houses for a lounge.
+            let cream = rgb(0.99, 0.96, 0.84)
+            let wood = rgb(0.45, 0.28, 0.13)
+            return Colors(background: rgb(0.26, 0.42, 0.18), panel: rgb(0.40, 0.60, 0.27),
+                          panelStroke: rgb(0.22, 0.36, 0.14), grid: rgb(1, 1, 0.8, 0.06),
+                          lounge: rgb(0.30, 0.50, 0.21), loungeStroke: rgb(0.20, 0.34, 0.13), ink: cream,
+                          station: rgb(0.93, 0.86, 0.66), stationStroke: wood,
+                          activeStation: rgb(0.99, 0.84, 0.40), activeStationStroke: rgb(0.55, 0.33, 0.08),
+                          button: rgb(0.24, 0.40, 0.15), buttonStroke: rgb(0.95, 0.80, 0.40), buttonInk: cream,
+                          link: rgb(0.99, 0.88, 0.50), bubble: rgb(0.20, 0.13, 0.07, 0.95), bubbleInk: cream,
+                          isLight: false, ambience: .shire, stationInk: rgb(0.30, 0.18, 0.08))
         case .lordOfTheRings:
-            // A green and pleasant hillside: parchment signs in brown ink and a wood-panelled
-            // burrow for a lounge.
-            let cream = rgb(0.98, 0.94, 0.80)
-            let gold = rgb(0.88, 0.72, 0.32)
-            return Colors(background: rgb(0.16, 0.25, 0.11), panel: rgb(0.27, 0.42, 0.19),
-                          panelStroke: rgb(0.12, 0.20, 0.08), grid: rgb(1, 1, 0.8, 0.05),
-                          lounge: rgb(0.50, 0.34, 0.19), loungeStroke: rgb(0.32, 0.20, 0.10), ink: cream,
-                          station: rgb(0.90, 0.83, 0.64), stationStroke: rgb(0.45, 0.30, 0.15),
-                          activeStation: rgb(0.99, 0.85, 0.46), activeStationStroke: rgb(0.55, 0.33, 0.08),
-                          button: rgb(0.16, 0.30, 0.12), buttonStroke: gold, buttonInk: cream,
-                          link: gold, bubble: rgb(0.17, 0.11, 0.06, 0.95), bubbleInk: cream,
-                          isLight: false, ambience: .leaves, stationInk: rgb(0.30, 0.18, 0.08))
+            // A scorched volcanic plain under a smoky red sky: black rock, stations that glow
+            // like embers when lit, and a cave in the rock for a lounge.
+            let ash = rgb(0.96, 0.86, 0.74)
+            let fire = rgb(1.00, 0.52, 0.14)
+            return Colors(background: rgb(0.07, 0.035, 0.03), panel: rgb(0.13, 0.065, 0.05),
+                          panelStroke: rgb(0.34, 0.10, 0.04), grid: rgb(1, 0.35, 0.15, 0.045),
+                          lounge: rgb(0.18, 0.10, 0.08), loungeStroke: rgb(0.48, 0.16, 0.06), ink: ash,
+                          station: rgb(0.20, 0.11, 0.09), stationStroke: rgb(0.42, 0.16, 0.08),
+                          activeStation: rgb(0.52, 0.14, 0.05), activeStationStroke: fire,
+                          button: rgb(0.36, 0.10, 0.04), buttonStroke: fire, buttonInk: ash,
+                          link: fire, bubble: rgb(0.10, 0.05, 0.04, 0.95), bubbleInk: ash,
+                          isLight: false, ambience: .mordor)
         case .harryPotter:
-            // A great hall at night: dark stone, candlelight, and banners in four colours.
+            // A great hall at night: dark stone, candlelight, an enchanted starry ceiling, and
+            // banners in four house colours on the walls and over the lit stations.
             let candle = rgb(1, 0.93, 0.78)
             let gold = rgb(0.90, 0.74, 0.35)
             return Colors(background: rgb(0.04, 0.03, 0.06), panel: rgb(0.09, 0.075, 0.10),
@@ -218,7 +274,7 @@ enum Theme: String, CaseIterable, Identifiable {
                           activeStation: rgb(0.52, 0.10, 0.12), activeStationStroke: gold,
                           button: rgb(0.40, 0.08, 0.10), buttonStroke: gold, buttonInk: candle,
                           link: gold, bubble: rgb(0.07, 0.05, 0.08, 0.95), bubbleInk: candle,
-                          isLight: false, ambience: .candles,
+                          isLight: false, ambience: .greatHall,
                           banners: [rgb(0.55, 0.10, 0.12), rgb(0.08, 0.38, 0.22), rgb(0.12, 0.22, 0.52),
                                     rgb(0.70, 0.52, 0.10)])
         }
