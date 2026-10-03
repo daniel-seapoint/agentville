@@ -7,8 +7,8 @@ cd "$(dirname "$0")/.."
 
 swift build -c release
 BIN="$(swift build -c release --show-bin-path)/Agentville"
-THEMES="workshop daylight forest ocean space sunset terminal winter"
-STYLES="smooth pixel outlined glow"
+THEMES="workshop daylight forest ocean space sunset terminal winter suburbia hyperspace"
+STYLES="smooth pixel outlined glow toon hologram"
 WORK="$(mktemp -d)"
 mkdir -p docs/themes docs/styles
 
@@ -28,9 +28,15 @@ for theme in $THEMES; do
     run --record "$WORK/$theme" --after 16 --seconds 2 -theme "$theme" -artStyle smooth
     echo "  recorded $(ls "$WORK/$theme" | wc -l | tr -d ' ') frames"
 done
+# Most styles are shown on the Workshop floor; the two themed ones on the theme made for them.
 for style in $STYLES; do
-    echo "Style: $style"
-    run --snapshot "docs/styles/$style.png" --after 16 -theme workshop -artStyle "$style"
+    case "$style" in
+        toon) theme=suburbia ;;
+        hologram) theme=hyperspace ;;
+        *) theme=workshop ;;
+    esac
+    echo "Style: $style on $theme"
+    run --snapshot "docs/styles/$style.png" --after 16 -theme "$theme" -artStyle "$style"
 done
 
 python3 scripts/make_gif.py "$WORK" docs $THEMES

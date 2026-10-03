@@ -3,7 +3,7 @@ import AppKit
 /// The look of the floor: its colours, and a little weather or ambience drifting over it.
 /// The agents keep their own colours whatever the theme.
 enum Theme: String, CaseIterable, Identifiable {
-    case workshop, daylight, forest, ocean, space, sunset, terminal, winter
+    case workshop, daylight, forest, ocean, space, sunset, terminal, winter, suburbia, hyperspace
 
     var id: Self { self }
 
@@ -17,6 +17,8 @@ enum Theme: String, CaseIterable, Identifiable {
         case .sunset: return "Sunset"
         case .terminal: return "Terminal"
         case .winter: return "Winter"
+        case .suburbia: return "Suburbia"
+        case .hyperspace: return "Hyperspace"
         }
     }
 
@@ -32,6 +34,10 @@ enum Theme: String, CaseIterable, Identifiable {
     /// What moves over the floor, behind the agents.
     enum Ambience {
         case none, stars, bubbles, fireflies, embers, snow, scanlines
+        /// Fat cartoon clouds drifting across a blue sky.
+        case clouds
+        /// Stars, and every so often the jump to lightspeed.
+        case hyperspace
     }
 
     struct Colors {
@@ -142,6 +148,28 @@ enum Theme: String, CaseIterable, Identifiable {
                           button: rgb(0.21, 0.40, 0.62), buttonStroke: rgb(0.55, 0.80, 1), buttonInk: white,
                           link: rgb(0.6, 0.85, 1), bubble: rgb(0.07, 0.10, 0.15, 0.95), bubbleInk: white,
                           isLight: false, ambience: .snow)
+        case .suburbia:
+            // A sunny cartoon suburb: sky blue, bold dark lines, a pink-walled living room.
+            let line = rgb(0.10, 0.10, 0.16)
+            return Colors(background: rgb(0.36, 0.66, 0.90), panel: rgb(0.52, 0.79, 0.96),
+                          panelStroke: line, grid: rgb(1, 1, 1, 0.12),
+                          lounge: rgb(0.86, 0.62, 0.80), loungeStroke: line, ink: line,
+                          station: rgb(1, 0.98, 0.92), stationStroke: line,
+                          activeStation: rgb(1, 0.86, 0.20), activeStationStroke: line,
+                          button: rgb(1, 0.85, 0.13), buttonStroke: line, buttonInk: line,
+                          link: rgb(0.80, 0.20, 0.45), bubble: rgb(1, 1, 1, 0.97), bubbleInk: line,
+                          isLight: true, ambience: .clouds)
+        case .hyperspace:
+            // A galaxy far away: black space, gold lettering, saber-blue and saber-red trim.
+            let gold = rgb(1, 0.84, 0.28)
+            return Colors(background: rgb(0, 0, 0.012), panel: rgb(0.012, 0.014, 0.035),
+                          panelStroke: rgb(1, 0.84, 0.28, 0.22), grid: rgb(1, 1, 1, 0.018),
+                          lounge: rgb(0.80, 0.62, 0.40, 0.08), loungeStroke: rgb(0.85, 0.66, 0.42, 0.30), ink: gold,
+                          station: rgb(0.05, 0.05, 0.08), stationStroke: rgb(1, 1, 1, 0.12),
+                          activeStation: rgb(0.04, 0.12, 0.26), activeStationStroke: rgb(0.40, 0.78, 1),
+                          button: rgb(0.30, 0.04, 0.05), buttonStroke: rgb(1, 0.25, 0.22), buttonInk: rgb(1, 0.93, 0.90),
+                          link: gold, bubble: rgb(0.01, 0.01, 0.03, 0.95), bubbleInk: rgb(0.95, 0.95, 1),
+                          isLight: false, ambience: .hyperspace)
         }
     }
 

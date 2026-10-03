@@ -93,6 +93,16 @@ final class AgentNode: SKNode {
         let textureRows: CGFloat = CGFloat(PixelArt.canvasRows) + 2 * margin
         sprite.anchorPoint = CGPoint(x: 0.5, y: anchorRow / textureRows)
         addChild(sprite)
+        if PixelArt.style == .hologram {
+            // A projection never quite holds steady: a soft waver, and now and then a glitch.
+            let waver = SKAction.sequence([.fadeAlpha(to: 0.82, duration: 0.6), .fadeAlpha(to: 1, duration: 0.6)])
+            let glitch = SKAction.sequence([.fadeAlpha(to: 0.35, duration: 0.04), .fadeAlpha(to: 1, duration: 0.05),
+                                            .fadeAlpha(to: 0.6, duration: 0.04), .fadeAlpha(to: 1, duration: 0.06)])
+            sprite.run(.sequence([
+                .wait(forDuration: Double((persona.jitter.y + 1) * 1.5)),
+                .repeatForever(.sequence([.repeat(waver, count: 3), glitch])),
+            ]))
+        }
 
         prop.fontSize = compact ? 10 : 15
         prop.verticalAlignmentMode = .center

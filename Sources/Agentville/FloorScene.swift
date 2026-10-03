@@ -532,6 +532,76 @@ final class FloorScene: SKScene {
                     .repeatForever(.sequence([.moveTo(y: frame.maxY, duration: 0), .moveTo(y: frame.minY, duration: full)])),
                 ]))
             }
+        case .clouds:
+            // Fat cartoon clouds, white with a dark outline, drifting slowly across the sky.
+            let cloudCount = max(3, Int(frame.width / 220))
+            for index in 0..<cloudCount {
+                let cloud = SKNode()
+                let puffs: [(CGFloat, CGFloat, CGFloat)] = [(-26, 0, 15), (-8, 9, 20), (14, 6, 17), (30, -2, 12), (2, -6, 14)]
+                for outline in [true, false] {
+                    for (x, y, radius) in puffs {
+                        let puff = SKShapeNode(circleOfRadius: radius + (outline ? 2 : 0))
+                        puff.fillColor = outline ? Theme.colors.ink : .white
+                        puff.strokeColor = .clear
+                        puff.position = CGPoint(x: x, y: y)
+                        cloud.addChild(puff)
+                    }
+                }
+                let scale: CGFloat = 0.7 + random.unit() * 0.6
+                cloud.setScale(scale)
+                cloud.alpha = 0.95
+                let y: CGFloat = frame.minY + frame.height * (0.30 + random.unit() * 0.62)
+                let span: CGFloat = frame.width + 140
+                let share: CGFloat = CGFloat(index) / CGFloat(cloudCount)
+                let start: CGFloat = frame.minX - 70 + span * share
+                cloud.position = CGPoint(x: start, y: y)
+                ambience.addChild(cloud)
+                let speed: CGFloat = 9 + random.unit() * 8
+                let exit: CGFloat = frame.maxX + 70
+                cloud.run(.sequence([
+                    .moveTo(x: exit, duration: Double((exit - start) / speed)),
+                    .repeatForever(.sequence([.moveTo(x: frame.minX - 70, duration: 0),
+                                              .moveTo(x: exit, duration: Double(span / speed))])),
+                ]))
+            }
+        case .hyperspace:
+            for _ in 0..<Int(area / 3200) {
+                let star = dot(0.5 + random.unit() * 1, NSColor(white: 1, alpha: 1))
+                star.position = point()
+                star.alpha = 0.3 + random.unit() * 0.6
+            }
+            // Every so often the stars stretch into streaks flying out from the middle, as if
+            // the whole floor had made the jump to lightspeed.
+            let centre = CGPoint(x: frame.midX, y: frame.midY)
+            let reach = hypot(frame.width, frame.height) / 2
+            for _ in 0..<70 {
+                let angle: CGFloat = random.unit() * 2 * CGFloat.pi
+                let dx: CGFloat = cos(angle)
+                let dy: CGFloat = sin(angle)
+                let streak = SKSpriteNode(color: NSColor(srgbRed: 0.85, green: 0.92, blue: 1, alpha: 1),
+                                          size: CGSize(width: 2, height: 1.2))
+                streak.anchorPoint = CGPoint(x: 0, y: 0.5)
+                streak.zRotation = angle
+                let near: CGFloat = reach * (0.05 + random.unit() * 0.25)
+                let home = CGPoint(x: centre.x + dx * near, y: centre.y + dy * near)
+                streak.position = home
+                streak.alpha = 0
+                let distance: CGFloat = reach * 1.1
+                let far = CGPoint(x: centre.x + dx * distance, y: centre.y + dy * distance)
+                let jump = SKAction.group([
+                    .move(to: far, duration: 0.9),
+                    .scaleX(to: 30 + random.unit() * 50, duration: 0.9),
+                    .sequence([.fadeAlpha(to: 0.9, duration: 0.25), .wait(forDuration: 0.4), .fadeOut(withDuration: 0.25)]),
+                ])
+                jump.timingMode = .easeIn
+                streak.run(.repeatForever(.sequence([
+                    .wait(forDuration: 3 + Double(random.unit()) * 0.3),
+                    jump,
+                    .move(to: home, duration: 0), .scaleX(to: 1, duration: 0),
+                    .wait(forDuration: 4),
+                ])))
+                ambience.addChild(streak)
+            }
         case .scanlines:
             // Faint CRT lines, with a brighter band rolling slowly down the screen.
             let lines = CGMutablePath()

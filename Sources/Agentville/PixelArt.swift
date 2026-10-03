@@ -250,6 +250,8 @@ enum PixelArt {
         "U": (0.38, 0.44, 0.66), "u": (0.28, 0.33, 0.52),   // upholstery, its seams
         "V": (0.56, 0.36, 0.86),                             // violet
         "E": (0.98, 0.94, 0.84),                             // cream
+        "T": (1.00, 0.85, 0.12),                             // cartoon skin
+        "Q": (0.80, 0.64, 0.40),                             // stubble
     ]
 
     private static func paletteEntry(_ index: Int) -> (CGFloat, CGFloat, CGFloat) {
@@ -293,7 +295,7 @@ enum PixelArt {
         if let cached = agentCache[key] { return cached }
         let tint = paletteEntry(colorIndex)
         func frame(legs: [String], asleep: Bool) -> SKTexture {
-            texture(rows: compose(source, legs: legs, look: look, asleep: asleep), tint: tint)
+            texture(rows: compose(source, legs: legs, look: look, asleep: asleep, toon: style == .toon), tint: tint)
         }
         let textures = AgentTextures(walk: legs.map { frame(legs: $0, asleep: false) },
                                      asleep: frame(legs: legs[0], asleep: true))
@@ -359,7 +361,8 @@ enum PixelArt {
         return max(0, -(body.headTop + hat.overlay.offset))
     }
 
-    private static func compose(_ source: AgentSource, legs: [String], look: Look, asleep: Bool) -> [[Character]] {
+    private static func compose(_ source: AgentSource, legs: [String], look: Look, asleep: Bool,
+                                toon: Bool = false) -> [[Character]] {
         let body = bodies[source]!
         let bodyRows = asleep ? closingEyes(body.rows) : body.rows
         var canvas = Array(repeating: Array(repeating: Character("."), count: agentColumns), count: hatRows)
@@ -367,6 +370,19 @@ enum PixelArt {
         let headTop = hatRows + body.headTop
         // After the eyes are worked out, since a cream belly would otherwise read as eyes.
         look.pattern.apply(to: &canvas, top: hatRows)
+        if toon {
+            // Cartoon skin from the neck up, ears and antennae included, so the agent's own
+            // colour reads as its clothes. Then a stubbly muzzle round the mouth.
+            for row in 0..<(hatRows + neckRow) {
+                for column in canvas[row].indices where "BAD".contains(canvas[row][column]) {
+                    canvas[row][column] = "T"
+                }
+            }
+            let chin = hatRows + neckRow - 1
+            for column in 3...8 where canvas[chin][column] == "T" {
+                canvas[chin][column] = "Q"
+            }
+        }
 
         func overlay(_ rows: [String], at top: Int) {
             for (index, row) in rows.enumerated() where canvas.indices.contains(top + index) {
@@ -595,6 +611,10 @@ enum PixelArt {
         case outlined
         /// Smooth, with a soft halo of its own colour, like it is lit from within.
         case glow
+        /// Cartoon sitcom: yellow skin, a stubbly muzzle and thick black ink lines.
+        case toon
+        /// A flickering blue projection with scanlines, beamed in from far away.
+        case hologram
 
         var id: Self { self }
 
@@ -604,6 +624,8 @@ enum PixelArt {
             case .pixel: return "Pixel"
             case .outlined: return "Outlined"
             case .glow: return "Glow"
+            case .toon: return "Toon"
+            case .hologram: return "Hologram"
             }
         }
 
@@ -611,8 +633,8 @@ enum PixelArt {
         var margin: Int {
             switch self {
             case .smooth, .pixel: return 0
-            case .outlined: return 1
-            case .glow: return 2
+            case .outlined, .toon: return 1
+            case .glow, .hologram: return 2
             }
         }
     }
@@ -655,6 +677,8 @@ enum PixelArt {
         case .smooth: return smoothTexture(rows: rows, tint: tint)
         case .outlined: return smoothTexture(rows: rows, tint: tint, finish: .outline)
         case .glow: return smoothTexture(rows: rows, tint: tint, finish: .glow)
+        case .toon: return smoothTexture(rows: rows, tint: tint, finish: .toon)
+        case .hologram: return smoothTexture(rows: rows, tint: tint, finish: .hologram)
         }
     }
 
@@ -670,7 +694,7 @@ enum PixelArt {
 
     /// What the smooth renderer adds round the outside of each shape.
     private enum Finish {
-        case plain, outline, glow
+        case plain, outline, glow, toon, hologram
     }
 
     private static func pixelTexture(rows: [[Character]], tint: (CGFloat, CGFloat, CGFloat)) -> SKTexture {
@@ -737,7 +761,7 @@ enum PixelArt {
             for offset in union.indices { union[offset] += field.values[offset] }
         }
         var halo: [Float] = []
-        if finish == .glow {
+        if finish == .glow || finish == .hologram {
             halo = union
             for _ in 0..<2 { halo = boxBlur(halo, width: width, height: height, radius: cell) }
         }
@@ -746,6 +770,10 @@ enum PixelArt {
         // A glow is the agent's own colour, lifted towards white.
         let glowColor = (Float(min(1, tint.0 * 0.6 + 0.4)), Float(min(1, tint.1 * 0.6 + 0.4)),
                          Float(min(1, tint.2 * 0.6 + 0.4)))
+        // Toon lines are always black; on a dark floor a pale rim round them keeps them visible.
+        let toonInk: (Float, Float, Float) = (0.05, 0.05, 0.07)
+        let toonRim: Float = Theme.colors.isLight ? 0 : 0.9
+        let hologramBlue: (Float, Float, Float) = (0.40, 0.80, 1.0)
 
         func smoothstep(_ value: Float) -> Float {
             let x = min(max(value, 0), 1)
@@ -765,13 +793,24 @@ enum PixelArt {
                 }
             }
             // A narrow ramp around one half anti-aliases the outline.
-            let alpha = smoothstep((total - 0.42) / 0.16)
+            var alpha = smoothstep((total - 0.42) / 0.16)
             var red: Float = 0, green: Float = 0, blue: Float = 0
             if alpha > 0 {
                 let rgb = fields[strongest].rgb
                 red = Float(rgb.0) * alpha
                 green = Float(rgb.1) * alpha
                 blue = Float(rgb.2) * alpha
+            }
+            if finish == .hologram, alpha > 0 {
+                // Every colour becomes a shade of projector blue by its brightness, see-through,
+                // with every other band of rows dimmed into scanlines.
+                let brightness = (red * 0.3 + green * 0.59 + blue * 0.11) / alpha
+                let level = min(1, 0.4 + 0.8 * brightness)
+                let scanline: Float = (offset / width) % 4 < 2 ? 1 : 0.55
+                alpha *= 0.8 * scanline
+                red = hologramBlue.0 * level * alpha
+                green = hologramBlue.1 * level * alpha
+                blue = hologramBlue.2 * level * alpha
             }
             // Whatever is behind the shape, as premultiplied colour and coverage.
             var under: (Float, Float, Float, Float) = (0, 0, 0, 0)
@@ -785,6 +824,16 @@ enum PixelArt {
             case .glow:
                 let glow = min(1, halo[offset] * 1.6) * 0.55
                 under = (glowColor.0 * glow, glowColor.1 * glow, glowColor.2 * glow, glow)
+            case .toon:
+                // A thick black line, and outside it the rim on dark floors.
+                let line = smoothstep((total - 0.10) / 0.08)
+                let rim = smoothstep((total - 0.03) / 0.05) * toonRim
+                let ink = (toonInk.0 * line, toonInk.1 * line, toonInk.2 * line, line)
+                let pale = (1 - line) * rim
+                under = (ink.0 + pale, ink.1 + pale, ink.2 + pale, ink.3 + pale)
+            case .hologram:
+                let glow = min(1, halo[offset] * 1.6) * 0.35
+                under = (hologramBlue.0 * glow, hologramBlue.1 * glow, hologramBlue.2 * glow, glow)
             }
             // The shape over whatever is under it.
             let coverage = alpha + under.3 * (1 - alpha)

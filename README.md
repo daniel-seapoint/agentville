@@ -25,11 +25,13 @@ A Mac app that turns every running session into a little cartoon agent.
 
 ![The empty workshop](docs/empty.gif)
 
-**Themes** — eight looks for the floor, from the palette menu in the title bar: Workshop, Daylight,
-Forest, Ocean, Space, Sunset, Terminal and Winter. Each has its own colours and a little
-ambience: fireflies in the forest, bubbles in the ocean, stars, embers, snow, and CRT scanlines.
+**Themes** — ten looks for the floor, from the palette menu in the title bar: Workshop, Daylight,
+Forest, Ocean, Space, Sunset, Terminal, Winter, Suburbia and Hyperspace. Each has its own
+colours and a little ambience: fireflies in the forest, bubbles in the ocean, stars, embers,
+snow, CRT scanlines, cartoon clouds over a sunny sitcom suburb, and a jump to lightspeed in a
+galaxy far away.
 
-![The floor cycling through all eight themes](docs/themes.gif)
+![The floor cycling through all ten themes](docs/themes.gif)
 
 <table>
 <tr>
@@ -48,10 +50,15 @@ ambience: fireflies in the forest, bubbles in the ocean, stars, embers, snow, an
 <td><img src="docs/themes/terminal.png" alt="Terminal theme"><p align="center">Terminal</p></td>
 <td><img src="docs/themes/winter.png" alt="Winter theme"><p align="center">Winter</p></td>
 </tr>
+<tr>
+<td><img src="docs/themes/suburbia.png" alt="Suburbia theme"><p align="center">Suburbia</p></td>
+<td><img src="docs/themes/hyperspace.png" alt="Hyperspace theme"><p align="center">Hyperspace</p></td>
+</tr>
 </table>
 
-**Agent styles** — draw the agents smooth, as pixel art, with a cartoon outline, or glowing.
-Same menu.
+**Agent styles** — draw the agents smooth, as pixel art, with an outline, glowing, as
+yellow-skinned sitcom toons, or as flickering blue holograms. Same menu. Toon and Hologram are
+shown here on the themes made for them, Suburbia and Hyperspace; any style works with any theme.
 
 <table>
 <tr>
@@ -61,6 +68,10 @@ Same menu.
 <tr>
 <td><img src="docs/styles/outlined.png" alt="Outlined agents"><p align="center">Outlined</p></td>
 <td><img src="docs/styles/glow.png" alt="Glowing agents"><p align="center">Glow</p></td>
+</tr>
+<tr>
+<td><img src="docs/styles/toon.png" alt="Toon agents on the Suburbia theme"><p align="center">Toon</p></td>
+<td><img src="docs/styles/hologram.png" alt="Hologram agents on the Hyperspace theme"><p align="center">Hologram</p></td>
 </tr>
 </table>
 
