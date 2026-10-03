@@ -130,6 +130,10 @@ open build/Agentville.app
 
 Then start a Claude Code, Codex or Copilot CLI session and its agent walks in.
 
+The theme and agent-style pictures in this README come from the scripted demo:
+`./scripts/screenshots.sh` renders them on a Mac, and CI runs it for any commit whose message
+contains `[screenshots]`.
+
 ## How it works
 
 Agentville only reads the session logs these tools already write to `~/.claude`, `~/.codex`
