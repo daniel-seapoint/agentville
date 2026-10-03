@@ -52,8 +52,8 @@ final class AgentNode: SKNode {
     /// Half the height of the agent's body, and how far a hat rises above it.
     private let bodyHalf: CGFloat
     private let hatHeight: CGFloat
-    /// Points per map cell for this agent; subagents are drawn smaller.
-    private let scale: CGFloat
+    /// Half the width of the agent as drawn, without any margin round its texture.
+    private let halfWidth: CGFloat
     /// The bed as drawn, without any margin its texture has round it.
     private let bedArea: CGSize
 
@@ -77,7 +77,7 @@ final class AgentNode: SKNode {
         icon = BadgeNode(source: agent.source, logoSide: 13, showsName: false)
 
         let scale = Self.pixel * (compact ? 0.6 : 1)
-        self.scale = scale
+        halfWidth = CGFloat(PixelArt.agentColumns) * scale / 2
         bedArea = CGSize(width: CGFloat(PixelArt.bedSize.columns) * Self.pixel,
                          height: CGFloat(PixelArt.bedSize.rows) * Self.pixel)
         bodyHalf = CGFloat(PixelArt.bodyRows) * scale / 2
@@ -89,13 +89,14 @@ final class AgentNode: SKNode {
         // Some styles leave a margin round the texture too, which the anchor has to allow for.
         sprite.size = PixelArt.spriteSize((PixelArt.agentColumns, PixelArt.canvasRows), pixel: scale)
         let margin = CGFloat(PixelArt.style.margin)
-        sprite.anchorPoint = CGPoint(x: 0.5, y: (CGFloat(PixelArt.bodyRows) / 2 + margin)
-                                     / (CGFloat(PixelArt.canvasRows) + 2 * margin))
+        let anchorRow: CGFloat = CGFloat(PixelArt.bodyRows) / 2 + margin
+        let textureRows: CGFloat = CGFloat(PixelArt.canvasRows) + 2 * margin
+        sprite.anchorPoint = CGPoint(x: 0.5, y: anchorRow / textureRows)
         addChild(sprite)
 
         prop.fontSize = compact ? 10 : 15
         prop.verticalAlignmentMode = .center
-        propHome = CGPoint(x: CGFloat(PixelArt.agentColumns) * scale / 2 + (compact ? 6 : 10), y: -2)
+        propHome = CGPoint(x: halfWidth + (compact ? 6 : 10), y: -2)
         prop.position = propHome
         addChild(prop)
 
@@ -331,7 +332,7 @@ final class AgentNode: SKNode {
         if asleep {
             iconAnchor.position = CGPoint(x: -napReach - 2, y: -bodyHalf + icon.height / 2)
         } else {
-            iconAnchor.position = CGPoint(x: -CGFloat(PixelArt.agentColumns) * scale / 2 - 5 - icon.width / 2, y: 1)
+            iconAnchor.position = CGPoint(x: -halfWidth - 5 - icon.width / 2, y: 1)
         }
         prop.text = walking || !agent.isWorking ? "" : (agent.stage?.emoji ?? "💭")
         animateProp(for: walking || !agent.isWorking ? nil : agent.stage, thinking: agent.isWorking && agent.stage == nil)
