@@ -78,6 +78,7 @@ enum PixelArt {
     enum Hat: CaseIterable {
         case beanie, topHat, partyHat, cap, crown, headphones
         case cowboy, wizard, chef, hardHat, santa, propeller, halo, viking, fez, mortarboard, bow
+        case pirate, beret, flowerCrown, bunnyEars, catEars, sprout
 
         /// The rows to draw and where the first one goes relative to the top of the head.
         fileprivate var overlay: (offset: Int, rows: [String]) {
@@ -117,12 +118,101 @@ enum PixelArt {
                 return (-3, [".HHHHHHHHHH.", "...HHHHHHY..", "...HHHHHH.Y."])
             case .bow:
                 return (-2, ["..PP....PP..", "..PPPRRPPP.."])
+            case .pirate:
+                return (-3, ["...KKKKKK...", "..KKKWWKKK..", "KKKKKKKKKKKK"])
+            case .beret:
+                return (-2, [".....K......", "..rrrrrrrr..", ".rrrrrrrrrrr"])
+            case .flowerCrown:
+                return (-1, ["..P..Y..P...", ".NPNNYNNPNN."])
+            case .bunnyEars:
+                return (-5, ["..WW....WW..", "..WP....PW..", "..WP....PW..", "..WP....PW..", "..WW....WW.."])
+            case .catEars:
+                // In the agent's own colour, so they look like part of it.
+                return (-2, ["..B......B..", "..BP....PB.."])
+            case .sprout:
+                return (-3, ["...NN.NN....", "....NNN.....", ".....N......"])
             }
         }
     }
 
+    /// Something worn on the face or round the neck. An agent wears at most one of each.
     enum Accessory: CaseIterable {
-        case sunglasses, bowTie, scarf
+        case sunglasses, heartGlasses, nerdGlasses, monocle, eyepatch, mustache
+        case bowTie, scarf, necktie, goldChain
+
+        var isOnFace: Bool {
+            switch self {
+            case .sunglasses, .heartGlasses, .nerdGlasses, .monocle, .eyepatch, .mustache: return true
+            case .bowTie, .scarf, .necktie, .goldChain: return false
+            }
+        }
+
+        static let face = allCases.filter(\.isOnFace)
+        static let neck = allCases.filter { !$0.isOnFace }
+
+        /// The rows to draw, and whether they are placed relative to the eyes or the neck.
+        fileprivate var overlay: (fromEyes: Bool, offset: Int, rows: [String]) {
+            switch self {
+            case .sunglasses:
+                return (true, 0, [".KKKKKKKKKK.", ".KSKK..KSKK."])
+            case .heartGlasses:
+                return (true, 0, [".PPPP..PPPP.", ".PPPPPPPPPP.", "..PP....PP.."])
+            case .nerdGlasses:
+                // Frames only, so the eyes show through the lenses.
+                return (true, -1, [".KKKK..KKKK.", ".K..KKKK..K.", ".K..K..K..K.", ".KKKK..KKKK."])
+            case .monocle:
+                return (true, -1, [".......YYYY.", ".......Y..Y.", ".......Y..Y.", ".......YYYY.", "..........Y."])
+            case .eyepatch:
+                return (true, -1, [".KKKKKKKKKK.", ".KKKK.......", ".KKKK.......", "..KK........"])
+            case .mustache:
+                return (true, 2, ["...oooooo...", "..oo....oo.."])
+            case .bowTie:
+                return (false, 0, ["...RRKKRR..."])
+            case .scarf:
+                return (false, 0, ["..RRRRRRRR..", ".......RR..."])
+            case .necktie:
+                return (false, 0, [".....CC.....", ".....CC.....", "....CCCC....", ".....CC....."])
+            case .goldChain:
+                return (false, 0, ["...Y....Y...", "....Y..Y....", ".....YY....."])
+            }
+        }
+    }
+
+    /// Markings on the agent's own body colour. Drawn only over the body, never over eyes or clothes.
+    enum Pattern: CaseIterable {
+        case plain, stripes, spots, belly, overalls
+
+        /// Repaints the body cells of a composed agent; `top` is the canvas row of the body map's first row.
+        fileprivate func apply(to canvas: inout [[Character]], top: Int) {
+            func paint(_ row: Int, _ column: Int, _ cell: Character) {
+                let y = top + row
+                guard canvas.indices.contains(y), canvas[y].indices.contains(column),
+                      "BA".contains(canvas[y][column]) else { return }
+                canvas[y][column] = cell
+            }
+            switch self {
+            case .plain:
+                break
+            case .stripes:
+                for row in [9, 11] { for column in 0..<PixelArt.agentColumns { paint(row, column, "A") } }
+            case .spots:
+                for (row, column) in [(3, 7), (6, 3), (7, 8), (9, 7), (11, 4), (2, 4)] { paint(row, column, "A") }
+            case .belly:
+                for row in 9...11 { for column in 4...7 { paint(row, column, "E") } }
+            case .overalls:
+                // Straps over the shoulders, then denim from the waist down, legs included.
+                paint(9, 3, "c")
+                paint(9, 8, "c")
+                for row in 10...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "c") } }
+            }
+        }
+    }
+
+    /// Everything an agent wears, which together with its colour and provider decides how it looks.
+    struct Look: Hashable {
+        var hat: Hat?
+        var accessories: [Accessory] = []
+        var pattern: Pattern = .plain
     }
 
     static let palette: [(CGFloat, CGFloat, CGFloat)] = [
@@ -134,6 +224,13 @@ enum PixelArt {
         (0.30, 0.76, 0.54), // green
         (0.91, 0.47, 0.73), // pink
         (0.90, 0.75, 0.29), // yellow
+        (0.18, 0.70, 0.66), // teal
+        (0.62, 0.82, 0.30), // lime
+        (0.80, 0.36, 0.86), // magenta
+        (0.98, 0.56, 0.48), // coral
+        (0.66, 0.48, 0.34), // cocoa
+        (0.45, 0.52, 0.98), // periwinkle
+        (0.75, 0.78, 0.84), // silver
     ]
 
     private static let fixedColors: [Character: (CGFloat, CGFloat, CGFloat)] = [
@@ -152,6 +249,7 @@ enum PixelArt {
         "N": (0.30, 0.76, 0.54),                             // leaf green
         "U": (0.38, 0.44, 0.66), "u": (0.28, 0.33, 0.52),   // upholstery, its seams
         "V": (0.56, 0.36, 0.86),                             // violet
+        "E": (0.98, 0.94, 0.84),                             // cream
     ]
 
     private static func paletteEntry(_ index: Int) -> (CGFloat, CGFloat, CGFloat) {
@@ -182,14 +280,20 @@ enum PixelArt {
         var asleep: SKTexture
     }
 
-    private static var agentCache: [String: AgentTextures] = [:]
+    private struct AgentKey: Hashable {
+        var source: AgentSource
+        var color: Int
+        var look: Look
+    }
 
-    static func agentTextures(source: AgentSource, colorIndex: Int, hat: Hat?, accessory: Accessory?) -> AgentTextures {
-        let key = "\(source.rawValue)-\(colorIndex % palette.count)-\(String(describing: hat))-\(String(describing: accessory))"
+    private static var agentCache: [AgentKey: AgentTextures] = [:]
+
+    static func agentTextures(source: AgentSource, colorIndex: Int, look: Look) -> AgentTextures {
+        let key = AgentKey(source: source, color: ((colorIndex % palette.count) + palette.count) % palette.count, look: look)
         if let cached = agentCache[key] { return cached }
         let tint = paletteEntry(colorIndex)
         func frame(legs: [String], asleep: Bool) -> SKTexture {
-            texture(rows: compose(source, legs: legs, hat: hat, accessory: accessory, asleep: asleep), tint: tint)
+            texture(rows: compose(source, legs: legs, look: look, asleep: asleep), tint: tint)
         }
         let textures = AgentTextures(walk: legs.map { frame(legs: $0, asleep: false) },
                                      asleep: frame(legs: legs[0], asleep: true))
@@ -197,20 +301,30 @@ enum PixelArt {
         return textures
     }
 
-    /// The standing agent as an image for SwiftUI, `height` points tall including hat room.
-    static func agentImage(source: AgentSource, colorIndex: Int, persona: Persona, height: CGFloat) -> NSImage {
-        let standing = agentTextures(source: source, colorIndex: colorIndex, hat: persona.hat, accessory: persona.accessory).walk[0]
-        let width = height * CGFloat(agentColumns) / CGFloat(canvasRows)
-        return NSImage(cgImage: standing.cgImage(), size: NSSize(width: width, height: height))
+    /// The standing agent as an image for SwiftUI, `height` points tall including hat room
+    /// (and taller still by whatever margin the art style draws around it).
+    static func agentImage(source: AgentSource, colorIndex: Int, look: Look, height: CGFloat) -> NSImage {
+        let standing = agentTextures(source: source, colorIndex: colorIndex, look: look).walk[0]
+        let cell = height / CGFloat(canvasRows)
+        let size = spriteSize((agentColumns, canvasRows), pixel: cell)
+        return NSImage(cgImage: standing.cgImage(), size: size)
+    }
+
+    /// Size for a sprite of a map `cells` big drawn at `pixel` points per cell, including the
+    /// margin the current style leaves round its textures for outlines and glows. The margin
+    /// is the same on every side, so the map's centre stays at the sprite's centre.
+    static func spriteSize(_ cells: (columns: Int, rows: Int), pixel: CGFloat) -> CGSize {
+        let margin = 2 * style.margin
+        return CGSize(width: CGFloat(cells.columns + margin) * pixel, height: CGFloat(cells.rows + margin) * pixel)
     }
 
     /// The app icon's mascot: the orange Codex-shaped agent in a crown, standing, drawn large.
     /// Returns the image and how many of its rows at the top are empty.
     static func mascot(style: Style) -> (image: CGImage, emptyRowsOnTop: Int, rows: Int) {
-        let rows = compose(.codex, legs: legs[0], hat: .crown, accessory: nil, asleep: false)
+        let rows = compose(.codex, legs: legs[0], look: Look(hat: .crown), asleep: false)
         let tint = paletteEntry(1)
-        let texture = style == .smooth ? smoothTexture(rows: rows, tint: tint, cell: 40)
-                                       : pixelTexture(rows: rows, tint: tint)
+        let texture = style == .pixel ? pixelTexture(rows: rows, tint: tint)
+                                      : smoothTexture(rows: rows, tint: tint, cell: 40)
         let empty = rows.firstIndex { $0.contains { $0 != "." } } ?? 0
         return (texture.cgImage(), empty, rows.count)
     }
@@ -218,7 +332,7 @@ enum PixelArt {
     /// The mascot as a menu bar icon: its silhouette, with the visor cut out so the eyes show.
     /// A template image, so macOS tints it to suit a light or dark menu bar.
     static func menuBarIcon() -> NSImage {
-        let all = compose(.codex, legs: legs[0], hat: .crown, accessory: nil, asleep: false)
+        let all = compose(.codex, legs: legs[0], look: Look(hat: .crown), asleep: false)
         let rows = Array(all.drop { row in row.allSatisfy { $0 == "." } })
         let cell = 4 // pixels; drawn at about three times the size it is shown
         let width = agentColumns * cell
@@ -245,13 +359,14 @@ enum PixelArt {
         return max(0, -(body.headTop + hat.overlay.offset))
     }
 
-    private static func compose(_ source: AgentSource, legs: [String], hat: Hat?, accessory: Accessory?,
-                                asleep: Bool) -> [[Character]] {
+    private static func compose(_ source: AgentSource, legs: [String], look: Look, asleep: Bool) -> [[Character]] {
         let body = bodies[source]!
         let bodyRows = asleep ? closingEyes(body.rows) : body.rows
         var canvas = Array(repeating: Array(repeating: Character("."), count: agentColumns), count: hatRows)
         canvas += (bodyRows + legs).map(Array.init)
         let headTop = hatRows + body.headTop
+        // After the eyes are worked out, since a cream belly would otherwise read as eyes.
+        look.pattern.apply(to: &canvas, top: hatRows)
 
         func overlay(_ rows: [String], at top: Int) {
             for (index, row) in rows.enumerated() where canvas.indices.contains(top + index) {
@@ -261,20 +376,15 @@ enum PixelArt {
             }
         }
 
-        if let hat {
+        if let hat = look.hat {
             // Antennae would poke through the hat.
             for row in 0..<headTop { canvas[row] = Array(repeating: ".", count: agentColumns) }
             overlay(hat.overlay.rows, at: headTop + hat.overlay.offset)
         }
-        switch accessory {
-        case .sunglasses:
-            overlay([".KKKKKKKKKK.", ".KSKK..KSKK."], at: hatRows + body.eyeTop)
-        case .bowTie:
-            overlay(["...RRKKRR..."], at: hatRows + neckRow)
-        case .scarf:
-            overlay(["..RRRRRRRR..", ".......RR..."], at: hatRows + neckRow)
-        case nil:
-            break
+        for accessory in look.accessories {
+            let placement = accessory.overlay
+            let anchor = hatRows + (placement.fromEyes ? body.eyeTop : neckRow)
+            overlay(placement.rows, at: anchor + placement.offset)
         }
         return canvas
     }
@@ -476,19 +586,46 @@ enum PixelArt {
     // MARK: Rendering
 
     /// How the character maps are turned into images.
-    enum Style: String {
+    enum Style: String, CaseIterable, Identifiable {
         /// The maps with their corners rounded off and edges anti-aliased.
         case smooth
         /// One hard-edged square per cell.
         case pixel
+        /// Smooth, with a dark cartoon outline round every shape.
+        case outlined
+        /// Smooth, with a soft halo of its own colour, like it is lit from within.
+        case glow
+
+        var id: Self { self }
+
+        var label: String {
+            switch self {
+            case .smooth: return "Smooth"
+            case .pixel: return "Pixel"
+            case .outlined: return "Outlined"
+            case .glow: return "Glow"
+            }
+        }
+
+        /// Empty cells left round every texture, so outlines and halos are not cut off.
+        var margin: Int {
+            switch self {
+            case .smooth, .pixel: return 0
+            case .outlined: return 1
+            case .glow: return 2
+            }
+        }
     }
+
+    /// Off while drawing pictures in several styles, so doing so does not change the user's choice.
+    static var savesStyle = true
 
     /// Persisted, so the choice survives a relaunch. Changing it drops every cached texture;
     /// nodes already on screen keep their old ones until they are rebuilt.
     static var style: Style = UserDefaults.standard.string(forKey: "artStyle").flatMap(Style.init) ?? .smooth {
         didSet {
             guard style != oldValue else { return }
-            UserDefaults.standard.set(style.rawValue, forKey: "artStyle")
+            if savesStyle { UserDefaults.standard.set(style.rawValue, forKey: "artStyle") }
             agentCache.removeAll()
             bedCache.removeAll()
             furnitureCache.removeAll()
@@ -507,10 +644,28 @@ enum PixelArt {
     }
 
     private static func texture(rows: [[Character]], tint: (CGFloat, CGFloat, CGFloat)) -> SKTexture {
+        let rows = padded(rows, by: style.margin)
         switch style {
         case .pixel: return pixelTexture(rows: rows, tint: tint)
         case .smooth: return smoothTexture(rows: rows, tint: tint)
+        case .outlined: return smoothTexture(rows: rows, tint: tint, finish: .outline)
+        case .glow: return smoothTexture(rows: rows, tint: tint, finish: .glow)
         }
+    }
+
+    /// The map with `margin` empty cells added on every side, and ragged rows evened out.
+    private static func padded(_ rows: [[Character]], by margin: Int) -> [[Character]] {
+        guard margin > 0 else { return rows }
+        let width = (rows.map(\.count).max() ?? 0) + margin * 2
+        let blank = [Character](repeating: ".", count: width)
+        let side = [Character](repeating: ".", count: margin)
+        let body = rows.map { row in side + row + [Character](repeating: ".", count: width - margin - row.count) }
+        return Array(repeating: blank, count: margin) + body + Array(repeating: blank, count: margin)
+    }
+
+    /// What the smooth renderer adds round the outside of each shape.
+    private enum Finish {
+        case plain, outline, glow
     }
 
     private static func pixelTexture(rows: [[Character]], tint: (CGFloat, CGFloat, CGFloat)) -> SKTexture {
@@ -540,7 +695,7 @@ enum PixelArt {
     /// smooth line with no gaps between them.
     /// - Parameter cell: pixels per map cell. The default suits the floor; the app icon asks for more.
     private static func smoothTexture(rows: [[Character]], tint: (CGFloat, CGFloat, CGFloat),
-                                      cell: Int = 12) -> SKTexture {
+                                      cell: Int = 12, finish: Finish = .plain) -> SKTexture {
         let columns = rows.map(\.count).max() ?? 1
         let width = columns * cell
         let height = rows.count * cell
@@ -570,28 +725,71 @@ enum PixelArt {
             }
         }
 
+        // The sum of the fields is the whole shape blurred. Blurred again, much wider, it is
+        // the halo for the glow style.
+        var union = [Float](repeating: 0, count: width * height)
+        for field in fields {
+            for offset in union.indices { union[offset] += field.values[offset] }
+        }
+        var halo: [Float] = []
+        if finish == .glow {
+            halo = union
+            for _ in 0..<2 { halo = boxBlur(halo, width: width, height: height, radius: cell) }
+        }
+        let outlineInk: (Float, Float, Float) = (0.07, 0.08, 0.10)
+        // A glow is the agent's own colour, lifted towards white.
+        let glowColor = (Float(min(1, tint.0 * 0.6 + 0.4)), Float(min(1, tint.1 * 0.6 + 0.4)),
+                         Float(min(1, tint.2 * 0.6 + 0.4)))
+
+        func smoothstep(_ value: Float) -> Float {
+            let x = min(max(value, 0), 1)
+            return x * x * (3 - 2 * x)
+        }
+
         var pixels = [UInt8](repeating: 0, count: width * height * 4)
         for offset in 0..<width * height {
-            var total: Float = 0
+            let total = union[offset]
             var strongest = 0
             var strongestValue: Float = 0
             for (index, field) in fields.enumerated() {
                 let value = field.values[offset]
-                total += value
                 if value > strongestValue {
                     strongestValue = value
                     strongest = index
                 }
             }
             // A narrow ramp around one half anti-aliases the outline.
-            let edge = min(max((total - 0.42) / 0.16, 0), 1)
-            let alpha = CGFloat(edge * edge * (3 - 2 * edge))
-            guard alpha > 0 else { continue }
-            let rgb = fields[strongest].rgb
-            pixels[offset * 4] = UInt8((rgb.0 * alpha * 255).rounded())
-            pixels[offset * 4 + 1] = UInt8((rgb.1 * alpha * 255).rounded())
-            pixels[offset * 4 + 2] = UInt8((rgb.2 * alpha * 255).rounded())
-            pixels[offset * 4 + 3] = UInt8((alpha * 255).rounded())
+            let alpha = smoothstep((total - 0.42) / 0.16)
+            var red: Float = 0, green: Float = 0, blue: Float = 0
+            if alpha > 0 {
+                let rgb = fields[strongest].rgb
+                red = Float(rgb.0) * alpha
+                green = Float(rgb.1) * alpha
+                blue = Float(rgb.2) * alpha
+            }
+            // Whatever is behind the shape, as premultiplied colour and coverage.
+            var under: (Float, Float, Float, Float) = (0, 0, 0, 0)
+            switch finish {
+            case .plain:
+                break
+            case .outline:
+                // The same field cut at a lower level reaches a little further out.
+                let edge = smoothstep((total - 0.08) / 0.12)
+                under = (outlineInk.0 * edge, outlineInk.1 * edge, outlineInk.2 * edge, edge)
+            case .glow:
+                let glow = min(1, halo[offset] * 1.6) * 0.55
+                under = (glowColor.0 * glow, glowColor.1 * glow, glowColor.2 * glow, glow)
+            }
+            // The shape over whatever is under it.
+            let coverage = alpha + under.3 * (1 - alpha)
+            guard coverage > 0 else { continue }
+            red += under.0 * (1 - alpha)
+            green += under.1 * (1 - alpha)
+            blue += under.2 * (1 - alpha)
+            pixels[offset * 4] = UInt8(min(255, (red * 255).rounded()))
+            pixels[offset * 4 + 1] = UInt8(min(255, (green * 255).rounded()))
+            pixels[offset * 4 + 2] = UInt8(min(255, (blue * 255).rounded()))
+            pixels[offset * 4 + 3] = UInt8(min(255, (coverage * 255).rounded()))
         }
 
         let space = CGColorSpace(name: CGColorSpace.sRGB)!

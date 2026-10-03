@@ -37,11 +37,20 @@ final class WorkshopController {
     var floatOnTop = false {
         didSet { applyWindowLevel() }
     }
-    /// Hard-edged pixel art instead of the smooth rendering.
-    var pixelArt = PixelArt.style == .pixel {
+    /// How the agents and furniture are drawn: smooth, pixel art, outlined or glowing.
+    var artStyle = PixelArt.style {
         didSet {
-            guard pixelArt != oldValue else { return }
-            PixelArt.style = pixelArt ? .pixel : .smooth
+            guard artStyle != oldValue else { return }
+            PixelArt.style = artStyle
+            scene.restyle()
+        }
+    }
+    /// The floor's colours and ambience.
+    var theme = Theme.current {
+        didSet {
+            guard theme != oldValue else { return }
+            Theme.current = theme
+            applyAppearance()
             scene.restyle()
         }
     }
@@ -82,6 +91,11 @@ final class WorkshopController {
         // `--icon <folder>` writes the app icon artwork there and quits.
         if let folder = value(after: "--icon") {
             AppIcon.write(to: URL(fileURLWithPath: folder))
+            exit(0)
+        }
+        // `--wardrobe <png>` draws every hat, accessory, pattern, colour and art style and quits.
+        if let path = value(after: "--wardrobe") {
+            Wardrobe.write(to: URL(fileURLWithPath: path))
             exit(0)
         }
         if let path = value(after: "--replay") {
@@ -178,6 +192,14 @@ final class WorkshopController {
         scene.sync(store.agents)
     }
 
+    /// Light themes get light window chrome and popovers; the rest stay dark.
+    func applyAppearance() {
+        let appearance = NSAppearance(named: Theme.colors.isLight ? .aqua : .darkAqua)
+        for window in NSApp.windows where window.canBecomeMain {
+            window.appearance = appearance
+        }
+    }
+
     private func applyWindowLevel() {
         for window in NSApp.windows where window.canBecomeMain {
             window.level = floatOnTop ? .floating : .normal
@@ -187,8 +209,8 @@ final class WorkshopController {
     /// One agent's popover, for checking it without clicking.
     @MainActor private func saveDetailSnapshot(of agentID: String, to url: URL) {
         let renderer = ImageRenderer(content: AgentDetailPopover(store: store, agentID: agentID)
-            .background(Color(white: 0.13))
-            .environment(\.colorScheme, .dark))
+            .background(Color(white: Theme.colors.isLight ? 0.95 : 0.13))
+            .environment(\.colorScheme, Theme.colors.isLight ? .light : .dark))
         renderer.scale = 2
         guard let image = renderer.cgImage else { return }
         try? NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])?.write(to: url)
@@ -197,8 +219,8 @@ final class WorkshopController {
     /// The agent list as it appears in its popover, for checking it without clicking.
     @MainActor private func saveListSnapshot(to url: URL) {
         let renderer = ImageRenderer(content: AgentListPopover(store: store, hidden: hiddenProviders)
-            .background(Color(white: 0.13))
-            .environment(\.colorScheme, .dark))
+            .background(Color(white: Theme.colors.isLight ? 0.95 : 0.13))
+            .environment(\.colorScheme, Theme.colors.isLight ? .light : .dark))
         renderer.scale = 2
         guard let image = renderer.cgImage else { return }
         try? NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])?.write(to: url)

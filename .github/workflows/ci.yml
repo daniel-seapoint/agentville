@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      screenshots:
+        description: Render the README screenshots and commit them
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-14
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: swift build -c release
+
+      - name: Test
+        run: swift test
+
+      # Renders the themes and agent styles from the demo, on a push whose commit message
+      # contains [screenshots] or when run by hand, and commits the pictures to the branch.
+      - name: Screenshots
+        id: screenshots
+        if: >-
+          (github.event_name == 'push' && contains(github.event.head_commit.message, '[screenshots]')) ||
+          (github.event_name == 'workflow_dispatch' && inputs.screenshots)
+        run: |
+          python3 -m pip install --quiet --break-system-packages pillow || python3 -m pip install --quiet pillow
+          ./scripts/screenshots.sh
+
+      - name: Upload screenshots
+        if: steps.screenshots.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: docs/
+
+      - name: Commit screenshots
+        if: steps.screenshots.outcome == 'success' && github.ref != 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs
+          if git diff --cached --quiet; then
+            echo "No changes to the screenshots"
+          else
+            git commit -m "Update README screenshots of the themes and agent styles"
+            git push
+          fi

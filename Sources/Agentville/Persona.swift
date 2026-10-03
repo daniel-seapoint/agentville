@@ -5,8 +5,8 @@ import Foundation
 /// Everything is drawn from a hash of the agent's id, so each agent looks random but keeps
 /// the same look for as long as it exists, including across app restarts.
 struct Persona {
-    let hat: PixelArt.Hat?
-    let accessory: PixelArt.Accessory?
+    /// Hat, glasses or the like, something round the neck, and markings.
+    let look: PixelArt.Look
     /// Otherwise it dozes on a couch if one is free, or on its feet.
     let sleepsInBed: Bool
     let dream: String
@@ -26,15 +26,18 @@ struct Persona {
 
     init(agentID: String) {
         var random = StableRandom(seed: agentID)
-        var hat = random.chance(0.85) ? PixelArt.Hat.allCases[random.next(PixelArt.Hat.allCases.count)] : nil
-        let accessory = random.chance(0.6)
-            ? PixelArt.Accessory.allCases[random.next(PixelArt.Accessory.allCases.count)] : nil
+        func pick<T>(_ options: [T]) -> T { options[random.next(options.count)] }
+        var hat = random.chance(0.85) ? pick(PixelArt.Hat.allCases) : nil
+        var accessories: [PixelArt.Accessory] = []
+        if random.chance(0.45) { accessories.append(pick(PixelArt.Accessory.face)) }
+        if random.chance(0.4) { accessories.append(pick(PixelArt.Accessory.neck)) }
         // Nobody goes out completely undressed.
-        if hat == nil && accessory == nil {
-            hat = PixelArt.Hat.allCases[random.next(PixelArt.Hat.allCases.count)]
+        if hat == nil && accessories.isEmpty {
+            hat = pick(PixelArt.Hat.allCases)
         }
-        self.hat = Self.demoHats[agentID] ?? hat
-        self.accessory = accessory
+        // Most agents are plain; the rest have stripes, spots, a belly patch or overalls.
+        let pattern = random.chance(0.45) ? pick(Array(PixelArt.Pattern.allCases.dropFirst())) : .plain
+        look = PixelArt.Look(hat: Self.demoHats[agentID] ?? hat, accessories: accessories, pattern: pattern)
         sleepsInBed = random.chance(0.55)
         dream = Self.dreams[random.next(Self.dreams.count)]
 
