@@ -11,6 +11,10 @@ A Mac app that turns every running session into a little cartoon agent.
 
 ![Agents moving between the Plan, Research, Build, Verify, Review and Ship stations](docs/working.gif)
 
+<p align="center">Dress the floor up in twelve themes and draw the agents in eight styles.</p>
+
+![The floor cycling through all twelve themes](docs/themes.gif)
+
 ## What you get
 
 **Working** — each agent stands at the station that matches what it is doing, tool in hand.
@@ -31,8 +35,6 @@ Spellhall. Each has its own colours and a little ambience: fireflies in the fore
 the ocean, stars, embers, snow, CRT scanlines, cartoon clouds over a sunny sitcom suburb, a jump
 to lightspeed in a galaxy far away, autumn leaves over a hillside with a burrow for a lounge, and
 floating candles in a great hall whose stations light up in four banner colours.
-
-![The floor cycling through all twelve themes](docs/themes.gif)
 
 <table>
 <tr>
@@ -66,6 +68,8 @@ yellow-skinned sitcom toons, as flickering blue holograms, in sepia ink on parch
 silvery sparkling apparitions. Same menu. Toon, Hologram, Parchment and Spectral are shown here
 on the themes made for them, Suburbia, Hyperspace, Hearthland and Spellhall; any style works
 with any theme.
+
+![The agents cycling through all eight styles](docs/styles.gif)
 
 <table>
 <tr>
