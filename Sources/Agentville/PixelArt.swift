@@ -78,7 +78,7 @@ enum PixelArt {
     enum Hat: CaseIterable {
         case beanie, topHat, partyHat, cap, crown, headphones
         case cowboy, wizard, chef, hardHat, santa, propeller, halo, viking, fez, mortarboard, bow
-        case pirate, beret, flowerCrown, bunnyEars, catEars, sprout
+        case pirate, beret, flowerCrown, bunnyEars, catEars, sprout, hood, circlet
 
         /// The rows to draw and where the first one goes relative to the top of the head.
         fileprivate var overlay: (offset: Int, rows: [String]) {
@@ -131,19 +131,25 @@ enum PixelArt {
                 return (-2, ["..B......B..", "..BP....PB.."])
             case .sprout:
                 return (-3, ["...NN.NN....", "....NNN.....", ".....N......"])
+            case .hood:
+                // A traveller's cloak hood, falling down either side of the face.
+                return (-2, ["....gggg....", "..gggggggg..", ".gggggggggg.", "gg........gg", "g..........g",
+                             "g..........g", "gg........gg"])
+            case .circlet:
+                return (0, ["..YYYSSYYY.."])
             }
         }
     }
 
     /// Something worn on the face or round the neck. An agent wears at most one of each.
     enum Accessory: CaseIterable {
-        case sunglasses, heartGlasses, nerdGlasses, monocle, eyepatch, mustache
-        case bowTie, scarf, necktie, goldChain
+        case sunglasses, heartGlasses, nerdGlasses, roundGlasses, monocle, eyepatch, mustache
+        case bowTie, scarf, stripedScarf, necktie, goldChain
 
         var isOnFace: Bool {
             switch self {
-            case .sunglasses, .heartGlasses, .nerdGlasses, .monocle, .eyepatch, .mustache: return true
-            case .bowTie, .scarf, .necktie, .goldChain: return false
+            case .sunglasses, .heartGlasses, .nerdGlasses, .roundGlasses, .monocle, .eyepatch, .mustache: return true
+            case .bowTie, .scarf, .stripedScarf, .necktie, .goldChain: return false
             }
         }
 
@@ -160,6 +166,9 @@ enum PixelArt {
             case .nerdGlasses:
                 // Frames only, so the eyes show through the lenses.
                 return (true, -1, [".KKKK..KKKK.", ".K..KKKK..K.", ".K..K..K..K.", ".KKKK..KKKK."])
+            case .roundGlasses:
+                // Thin round wire frames, a ring round each eye.
+                return (true, -1, ["..KK....KK..", ".K..K..K..K.", ".K..KKKK..K.", "..KK....KK.."])
             case .monocle:
                 return (true, -1, [".......YYYY.", ".......Y..Y.", ".......Y..Y.", ".......YYYY.", "..........Y."])
             case .eyepatch:
@@ -170,6 +179,8 @@ enum PixelArt {
                 return (false, 0, ["...RRKKRR..."])
             case .scarf:
                 return (false, 0, ["..RRRRRRRR..", ".......RR..."])
+            case .stripedScarf:
+                return (false, 0, ["..RRYYRRYY..", ".......YR...", ".......RY..."])
             case .necktie:
                 return (false, 0, [".....CC.....", ".....CC.....", "....CCCC....", ".....CC....."])
             case .goldChain:
@@ -252,6 +263,7 @@ enum PixelArt {
         "E": (0.98, 0.94, 0.84),                             // cream
         "T": (1.00, 0.85, 0.12),                             // cartoon skin
         "Q": (0.80, 0.64, 0.40),                             // stubble
+        "g": (0.20, 0.36, 0.20),                             // cloak green
     ]
 
     private static func paletteEntry(_ index: Int) -> (CGFloat, CGFloat, CGFloat) {
@@ -615,6 +627,10 @@ enum PixelArt {
         case toon
         /// A flickering blue projection with scanlines, beamed in from far away.
         case hologram
+        /// Sepia ink on old parchment, like a hand-drawn map of a faraway land.
+        case parchment
+        /// A silvery, see-through apparition that glows and sparkles.
+        case spectral
 
         var id: Self { self }
 
@@ -626,6 +642,8 @@ enum PixelArt {
             case .glow: return "Glow"
             case .toon: return "Toon"
             case .hologram: return "Hologram"
+            case .parchment: return "Parchment"
+            case .spectral: return "Spectral"
             }
         }
 
@@ -633,8 +651,8 @@ enum PixelArt {
         var margin: Int {
             switch self {
             case .smooth, .pixel: return 0
-            case .outlined, .toon: return 1
-            case .glow, .hologram: return 2
+            case .outlined, .toon, .parchment: return 1
+            case .glow, .hologram, .spectral: return 2
             }
         }
     }
@@ -679,6 +697,8 @@ enum PixelArt {
         case .glow: return smoothTexture(rows: rows, tint: tint, finish: .glow)
         case .toon: return smoothTexture(rows: rows, tint: tint, finish: .toon)
         case .hologram: return smoothTexture(rows: rows, tint: tint, finish: .hologram)
+        case .parchment: return smoothTexture(rows: rows, tint: tint, finish: .parchment)
+        case .spectral: return smoothTexture(rows: rows, tint: tint, finish: .spectral)
         }
     }
 
@@ -694,7 +714,7 @@ enum PixelArt {
 
     /// What the smooth renderer adds round the outside of each shape.
     private enum Finish {
-        case plain, outline, glow, toon, hologram
+        case plain, outline, glow, toon, hologram, parchment, spectral
     }
 
     private static func pixelTexture(rows: [[Character]], tint: (CGFloat, CGFloat, CGFloat)) -> SKTexture {
@@ -761,7 +781,7 @@ enum PixelArt {
             for offset in union.indices { union[offset] += field.values[offset] }
         }
         var halo: [Float] = []
-        if finish == .glow || finish == .hologram {
+        if finish == .glow || finish == .hologram || finish == .spectral {
             halo = union
             for _ in 0..<2 { halo = boxBlur(halo, width: width, height: height, radius: cell) }
         }
@@ -774,6 +794,10 @@ enum PixelArt {
         let toonInk: (Float, Float, Float) = (0.05, 0.05, 0.07)
         let toonRim: Float = Theme.colors.isLight ? 0 : 0.9
         let hologramBlue: (Float, Float, Float) = (0.40, 0.80, 1.0)
+        let sepiaDark: (Float, Float, Float) = (0.32, 0.19, 0.08)
+        let sepiaLight: (Float, Float, Float) = (0.97, 0.90, 0.72)
+        let sepiaInk: (Float, Float, Float) = (0.22, 0.13, 0.05)
+        let spectralSilver: (Float, Float, Float) = (0.72, 0.86, 1.0)
 
         func smoothstep(_ value: Float) -> Float {
             let x = min(max(value, 0), 1)
@@ -812,6 +836,18 @@ enum PixelArt {
                 green = hologramBlue.1 * level * alpha
                 blue = hologramBlue.2 * level * alpha
             }
+            if finish == .parchment || finish == .spectral, alpha > 0 {
+                // Both are drawn by brightness alone: parchment in sepia from dark ink to pale
+                // paper, the apparition from silver-blue to white and see-through.
+                let brightness = min(1, (red * 0.3 + green * 0.59 + blue * 0.11) / alpha)
+                let low = finish == .parchment ? sepiaDark : spectralSilver
+                let high = finish == .parchment ? sepiaLight : (1, 1, 1)
+                let level = finish == .parchment ? brightness.squareRoot() : brightness
+                if finish == .spectral { alpha *= 0.72 }
+                red = (low.0 + (high.0 - low.0) * level) * alpha
+                green = (low.1 + (high.1 - low.1) * level) * alpha
+                blue = (low.2 + (high.2 - low.2) * level) * alpha
+            }
             // Whatever is behind the shape, as premultiplied colour and coverage.
             var under: (Float, Float, Float, Float) = (0, 0, 0, 0)
             switch finish {
@@ -834,6 +870,13 @@ enum PixelArt {
             case .hologram:
                 let glow = min(1, halo[offset] * 1.6) * 0.35
                 under = (hologramBlue.0 * glow, hologramBlue.1 * glow, hologramBlue.2 * glow, glow)
+            case .parchment:
+                // A fine line of dark brown ink.
+                let line = smoothstep((total - 0.14) / 0.10)
+                under = (sepiaInk.0 * line, sepiaInk.1 * line, sepiaInk.2 * line, line)
+            case .spectral:
+                let glow = min(1, halo[offset] * 1.6) * 0.45
+                under = (spectralSilver.0 * glow, spectralSilver.1 * glow, spectralSilver.2 * glow, glow)
             }
             // The shape over whatever is under it.
             let coverage = alpha + under.3 * (1 - alpha)

@@ -25,13 +25,14 @@ A Mac app that turns every running session into a little cartoon agent.
 
 ![The empty workshop](docs/empty.gif)
 
-**Themes** — ten looks for the floor, from the palette menu in the title bar: Workshop, Daylight,
-Forest, Ocean, Space, Sunset, Terminal, Winter, Suburbia and Hyperspace. Each has its own
-colours and a little ambience: fireflies in the forest, bubbles in the ocean, stars, embers,
-snow, CRT scanlines, cartoon clouds over a sunny sitcom suburb, and a jump to lightspeed in a
-galaxy far away.
+**Themes** — twelve looks for the floor, from the palette menu in the title bar: Workshop,
+Daylight, Forest, Ocean, Space, Sunset, Terminal, Winter, Suburbia, Hyperspace, Hearthland and
+Spellhall. Each has its own colours and a little ambience: fireflies in the forest, bubbles in
+the ocean, stars, embers, snow, CRT scanlines, cartoon clouds over a sunny sitcom suburb, a jump
+to lightspeed in a galaxy far away, autumn leaves over a hillside with a burrow for a lounge, and
+floating candles in a great hall whose stations light up in four banner colours.
 
-![The floor cycling through all ten themes](docs/themes.gif)
+![The floor cycling through all twelve themes](docs/themes.gif)
 
 <table>
 <tr>
@@ -54,11 +55,17 @@ galaxy far away.
 <td><img src="docs/themes/suburbia.png" alt="Suburbia theme"><p align="center">Suburbia</p></td>
 <td><img src="docs/themes/hyperspace.png" alt="Hyperspace theme"><p align="center">Hyperspace</p></td>
 </tr>
+<tr>
+<td><img src="docs/themes/hearthland.png" alt="Hearthland theme"><p align="center">Hearthland</p></td>
+<td><img src="docs/themes/spellhall.png" alt="Spellhall theme"><p align="center">Spellhall</p></td>
+</tr>
 </table>
 
 **Agent styles** — draw the agents smooth, as pixel art, with an outline, glowing, as
-yellow-skinned sitcom toons, or as flickering blue holograms. Same menu. Toon and Hologram are
-shown here on the themes made for them, Suburbia and Hyperspace; any style works with any theme.
+yellow-skinned sitcom toons, as flickering blue holograms, in sepia ink on parchment, or as
+silvery sparkling apparitions. Same menu. Toon, Hologram, Parchment and Spectral are shown here
+on the themes made for them, Suburbia, Hyperspace, Hearthland and Spellhall; any style works
+with any theme.
 
 <table>
 <tr>
@@ -73,9 +80,13 @@ shown here on the themes made for them, Suburbia and Hyperspace; any style works
 <td><img src="docs/styles/toon.png" alt="Toon agents on the Suburbia theme"><p align="center">Toon</p></td>
 <td><img src="docs/styles/hologram.png" alt="Hologram agents on the Hyperspace theme"><p align="center">Hologram</p></td>
 </tr>
+<tr>
+<td><img src="docs/styles/parchment.png" alt="Parchment agents on the Hearthland theme"><p align="center">Parchment</p></td>
+<td><img src="docs/styles/spectral.png" alt="Spectral agents on the Spellhall theme"><p align="center">Spectral</p></td>
+</tr>
 </table>
 
-**Wardrobe** — every agent gets its own look, kept for as long as the session lives: one of 23
+**Wardrobe** — every agent gets its own look, kept for as long as the session lives: one of 25
 hats, glasses or a mustache, something round its neck, stripes, spots, a belly patch or
 overalls, and one of 15 colours.
 

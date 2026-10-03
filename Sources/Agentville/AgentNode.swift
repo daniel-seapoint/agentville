@@ -103,6 +103,25 @@ final class AgentNode: SKNode {
                 .repeatForever(.sequence([.repeat(waver, count: 3), glitch])),
             ]))
         }
+        if PixelArt.style == .spectral {
+            // An apparition breathes in and out of sight, with sparkles winking round it.
+            let breathe = SKAction.sequence([.fadeAlpha(to: 0.7, duration: 1.4), .fadeAlpha(to: 1, duration: 1.4)])
+            breathe.timingMode = .easeInEaseOut
+            sprite.run(.repeatForever(breathe))
+            let spots: [CGPoint] = [CGPoint(x: -0.5, y: 0.9), CGPoint(x: 0.6, y: 0.5), CGPoint(x: -0.6, y: -0.2),
+                                    CGPoint(x: 0.5, y: -0.7)]
+            for (index, spot) in spots.enumerated() {
+                let sparkle = SKShapeNode(circleOfRadius: 1.3)
+                sparkle.fillColor = NSColor(srgbRed: 0.85, green: 0.93, blue: 1, alpha: 1)
+                sparkle.strokeColor = .clear
+                sparkle.position = CGPoint(x: spot.x * halfWidth * 1.4, y: spot.y * bodyHalf * 1.3)
+                sparkle.alpha = 0
+                sprite.addChild(sparkle)
+                let twinkle = SKAction.sequence([.fadeIn(withDuration: 0.25), .fadeOut(withDuration: 0.45),
+                                                 .wait(forDuration: 1.2)])
+                sparkle.run(.sequence([.wait(forDuration: Double(index) * 0.45), .repeatForever(twinkle)]))
+            }
+        }
 
         prop.fontSize = compact ? 10 : 15
         prop.verticalAlignmentMode = .center

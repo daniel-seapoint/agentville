@@ -611,6 +611,76 @@ final class FloorScene: SKScene {
                 ]))
                 ambience.addChild(streak)
             }
+        case .leaves:
+            // Leaves in autumn colours, tumbling down and drifting with the wind.
+            let shades: [NSColor] = [
+                NSColor(srgbRed: 0.90, green: 0.55, blue: 0.15, alpha: 1),
+                NSColor(srgbRed: 0.80, green: 0.30, blue: 0.12, alpha: 1),
+                NSColor(srgbRed: 0.95, green: 0.78, blue: 0.25, alpha: 1),
+                NSColor(srgbRed: 0.55, green: 0.65, blue: 0.20, alpha: 1),
+            ]
+            for index in 0..<Int(frame.width / 40) {
+                let leaf = SKShapeNode(ellipseOf: CGSize(width: 7, height: 3.5))
+                leaf.fillColor = shades[index % shades.count]
+                leaf.strokeColor = .clear
+                leaf.alpha = 0.85
+                let x: CGFloat = frame.minX + random.unit() * frame.width
+                let y: CGFloat = frame.minY + random.unit() * frame.height
+                leaf.position = CGPoint(x: x, y: y)
+                ambience.addChild(leaf)
+                let speed: CGFloat = 16 + random.unit() * 18
+                let fall: CGFloat = frame.height + 20
+                let drift: CGFloat = 60 + random.unit() * 80
+                // The first fall starts wherever the leaf is; after that, from the top.
+                let firstShare: CGFloat = (y - frame.minY + 10) / fall
+                leaf.run(.repeatForever(.rotate(byAngle: random.chance(0.5) ? 6.3 : -6.3,
+                                                duration: 2 + Double(random.unit()) * 2)))
+                let sway = SKAction.sequence([.moveBy(x: 14, y: 0, duration: 1.3), .moveBy(x: -14, y: 0, duration: 1.3)])
+                sway.timingMode = .easeInEaseOut
+                leaf.run(.repeatForever(sway))
+                leaf.run(.sequence([
+                    .moveBy(x: drift * firstShare, y: -(y - frame.minY + 10), duration: Double(fall * firstShare / speed)),
+                    .repeatForever(.sequence([
+                        .move(to: CGPoint(x: frame.minX + random.unit() * frame.width, y: frame.maxY + 10), duration: 0),
+                        .moveBy(x: drift, y: -fall, duration: Double(fall / speed)),
+                    ])),
+                ]))
+            }
+        case .candles:
+            // Candles hanging in the air above the floor, each bobbing gently, flames flickering.
+            for _ in 0..<Int(frame.width / 55) {
+                let candle = SKNode()
+                let wax = SKShapeNode(rect: CGRect(x: -2.5, y: -9, width: 5, height: 14), cornerRadius: 1)
+                wax.fillColor = NSColor(srgbRed: 0.96, green: 0.93, blue: 0.84, alpha: 1)
+                wax.strokeColor = .clear
+                candle.addChild(wax)
+                let glow = SKShapeNode(circleOfRadius: 9)
+                glow.fillColor = NSColor(srgbRed: 1, green: 0.75, blue: 0.3, alpha: 0.16)
+                glow.strokeColor = .clear
+                glow.position = CGPoint(x: 0, y: 9)
+                candle.addChild(glow)
+                let flame = SKShapeNode(ellipseOf: CGSize(width: 3.6, height: 6))
+                flame.fillColor = NSColor(srgbRed: 1, green: 0.82, blue: 0.35, alpha: 1)
+                flame.strokeColor = .clear
+                flame.position = CGPoint(x: 0, y: 8.5)
+                candle.addChild(flame)
+                let x: CGFloat = frame.minX + 20 + random.unit() * (frame.width - 40)
+                let y: CGFloat = frame.minY + frame.height * (0.42 + random.unit() * 0.5)
+                candle.position = CGPoint(x: x, y: y)
+                let scale: CGFloat = 0.7 + random.unit() * 0.5
+                candle.setScale(scale)
+                ambience.addChild(candle)
+                let bob = SKAction.sequence([.moveBy(x: 0, y: 5, duration: 1.6 + Double(random.unit())),
+                                             .moveBy(x: 0, y: -5, duration: 1.6 + Double(random.unit()))])
+                bob.timingMode = .easeInEaseOut
+                candle.run(.repeatForever(bob))
+                let flicker = SKAction.sequence([
+                    .scaleY(to: 1.25, duration: 0.12), .scaleY(to: 0.9, duration: 0.09),
+                    .scaleY(to: 1.1, duration: 0.15), .scaleY(to: 1, duration: 0.1),
+                ])
+                flame.run(.repeatForever(.sequence([flicker, .wait(forDuration: 0.2 + Double(random.unit()) * 0.6)])))
+                glow.run(.repeatForever(.sequence([.fadeAlpha(to: 0.6, duration: 0.3), .fadeAlpha(to: 1, duration: 0.4)])))
+            }
         case .scanlines:
             // Faint CRT lines, with a brighter band rolling slowly down the screen.
             let lines = CGMutablePath()
@@ -701,10 +771,15 @@ private final class StationNode: SKNode {
 
     func applyState() {
         let colors = Theme.colors
-        tile.fillColor = isActive ? colors.activeStation : colors.station
+        var lit = colors.activeStation
+        if !colors.banners.isEmpty {
+            let index = Stage.allCases.firstIndex(of: stage) ?? 0
+            lit = colors.banners[index % colors.banners.count]
+        }
+        tile.fillColor = isActive ? lit : colors.station
         tile.strokeColor = isActive ? colors.activeStationStroke : colors.stationStroke
         icon.alpha = isActive ? 1 : 0.4
         nameLabel.attributedText = .label(stage.title, size: 10, weight: .medium,
-                                          color: colors.ink.withAlphaComponent(isActive ? 0.95 : 0.4))
+                                          color: (colors.stationInk ?? colors.ink).withAlphaComponent(isActive ? 0.95 : 0.45))
     }
 }
