@@ -80,8 +80,9 @@ final class WorkshopController {
         [ClaudeSource(), CodexSource(), CopilotSource()]
     }
     @ObservationIgnored private var timer: Timer?
-    /// Pixels per point for `--snapshot` and `--record`, set with `--snapshot-scale`. Above 1
-    /// the floor is drawn offscreen at that resolution, whatever the screen's own.
+    /// Pixels per point for `--snapshot`, set with `--snapshot-scale`. Above 1 the floor is drawn
+    /// offscreen at that resolution, whatever the screen's own. `--record` always uses the
+    /// screen, since the offscreen renderer stops the floor moving.
     @ObservationIgnored private var snapshotScale: CGFloat = 1
     @ObservationIgnored private var offscreen: OffscreenRenderer?
 
@@ -151,7 +152,8 @@ final class WorkshopController {
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
                 var frame = 0
                 let recorder = Timer(timeInterval: 0.1, repeats: true) { timer in
-                    self?.saveSnapshot(to: url.appendingPathComponent(String(format: "frame_%03d.png", frame)))
+                    self?.saveSnapshot(to: url.appendingPathComponent(String(format: "frame_%03d.png", frame)),
+                                       offscreen: false)
                     frame += 1
                     if frame >= frames {
                         timer.invalidate()
@@ -234,8 +236,8 @@ final class WorkshopController {
         try? NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])?.write(to: url)
     }
 
-    private func saveSnapshot(to url: URL) {
-        if snapshotScale > 1 {
+    private func saveSnapshot(to url: URL, offscreen useOffscreen: Bool = true) {
+        if useOffscreen, snapshotScale > 1 {
             if offscreen == nil { offscreen = OffscreenRenderer(scene: scene) }
             if let image = offscreen?.render(scale: snapshotScale) {
                 let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])

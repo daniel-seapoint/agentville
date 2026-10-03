@@ -26,6 +26,7 @@ for theme in $THEMES; do
     echo "Theme: $theme"
     run --snapshot "docs/themes/$theme.png" --after 16 -theme "$theme" -artStyle smooth
     run --record "$WORK/$theme" --after 16 --seconds 2 -theme "$theme" -artStyle smooth
+    echo "  recorded $(ls "$WORK/$theme" | wc -l | tr -d ' ') frames"
 done
 for style in $STYLES; do
     echo "Style: $style"
