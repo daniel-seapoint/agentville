@@ -56,6 +56,12 @@ final class AgentNode: SKNode {
     private let halfWidth: CGFloat
     /// The bed as drawn, without any margin its texture has round it.
     private let bedArea: CGSize
+    /// What it wears here: its everyday look, or the costume the theme dresses it in.
+    private let look: PixelArt.Look
+    /// Whatever it carries, held in its free hand on the side away from its tool.
+    private var heldItem: SKSpriteNode?
+    /// How much further out the provider icon floats to clear the held thing.
+    private let heldClearance: CGFloat
 
     static let pixel: CGFloat = 2.5
     /// Distance from a full-size agent's centre down to the floor it stands on.
@@ -70,8 +76,10 @@ final class AgentNode: SKNode {
         target = point
         compact = agent.isSubagent
         persona = Persona(agentID: agent.id)
+        let look = persona.look(for: Theme.current)
+        self.look = look
         color = PixelArt.color(agent.colorIndex)
-        textures = PixelArt.agentTextures(source: agent.source, colorIndex: agent.colorIndex, look: persona.look)
+        textures = PixelArt.agentTextures(source: agent.source, colorIndex: agent.colorIndex, look: look)
         sprite = SKSpriteNode(texture: textures.walk[0])
         bed = SKSpriteNode(texture: PixelArt.bed(colorIndex: agent.colorIndex))
         icon = BadgeNode(source: agent.source, logoSide: 13, showsName: false)
@@ -81,7 +89,8 @@ final class AgentNode: SKNode {
         bedArea = CGSize(width: CGFloat(PixelArt.bedSize.columns) * Self.pixel,
                          height: CGFloat(PixelArt.bedSize.rows) * Self.pixel)
         bodyHalf = CGFloat(PixelArt.bodyRows) * scale / 2
-        hatHeight = CGFloat(PixelArt.rowsAboveBody(source: agent.source, hat: persona.look.hat)) * scale
+        hatHeight = CGFloat(PixelArt.rowsAboveBody(source: agent.source, hat: look.hat)) * scale
+        heldClearance = look.held.map { CGFloat($0.size.columns) * scale + 2 } ?? 0
         super.init()
         position = point
 
@@ -93,6 +102,36 @@ final class AgentNode: SKNode {
         let textureRows: CGFloat = CGFloat(PixelArt.canvasRows) + 2 * margin
         sprite.anchorPoint = CGPoint(x: 0.5, y: anchorRow / textureRows)
         addChild(sprite)
+        if let held = look.held { hold(held, scale: scale) }
+        if PixelArt.style == .hologram {
+            // A projection never quite holds steady: a soft waver, and now and then a glitch.
+            let waver = SKAction.sequence([.fadeAlpha(to: 0.82, duration: 0.6), .fadeAlpha(to: 1, duration: 0.6)])
+            let glitch = SKAction.sequence([.fadeAlpha(to: 0.35, duration: 0.04), .fadeAlpha(to: 1, duration: 0.05),
+                                            .fadeAlpha(to: 0.6, duration: 0.04), .fadeAlpha(to: 1, duration: 0.06)])
+            sprite.run(.sequence([
+                .wait(forDuration: Double((persona.jitter.y + 1) * 1.5)),
+                .repeatForever(.sequence([.repeat(waver, count: 3), glitch])),
+            ]))
+        }
+        if PixelArt.style == .spectral {
+            // An apparition breathes in and out of sight, with sparkles winking round it.
+            let breathe = SKAction.sequence([.fadeAlpha(to: 0.7, duration: 1.4), .fadeAlpha(to: 1, duration: 1.4)])
+            breathe.timingMode = .easeInEaseOut
+            sprite.run(.repeatForever(breathe))
+            let spots: [CGPoint] = [CGPoint(x: -0.5, y: 0.9), CGPoint(x: 0.6, y: 0.5), CGPoint(x: -0.6, y: -0.2),
+                                    CGPoint(x: 0.5, y: -0.7)]
+            for (index, spot) in spots.enumerated() {
+                let sparkle = SKShapeNode(circleOfRadius: 1.3)
+                sparkle.fillColor = NSColor(srgbRed: 0.85, green: 0.93, blue: 1, alpha: 1)
+                sparkle.strokeColor = .clear
+                sparkle.position = CGPoint(x: spot.x * halfWidth * 1.4, y: spot.y * bodyHalf * 1.3)
+                sparkle.alpha = 0
+                sprite.addChild(sparkle)
+                let twinkle = SKAction.sequence([.fadeIn(withDuration: 0.25), .fadeOut(withDuration: 0.45),
+                                                 .wait(forDuration: 1.2)])
+                sparkle.run(.sequence([.wait(forDuration: Double(index) * 0.45), .repeatForever(twinkle)]))
+            }
+        }
 
         prop.fontSize = compact ? 10 : 15
         prop.verticalAlignmentMode = .center
@@ -133,6 +172,29 @@ final class AgentNode: SKNode {
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    /// Puts `held` in the agent's free hand. It belongs to the sprite, so it turns round when
+    /// the agent does and bobs along with it.
+    private func hold(_ held: PixelArt.Held, scale: CGFloat) {
+        let item = SKSpriteNode(texture: PixelArt.heldTexture(held))
+        item.size = PixelArt.spriteSize(held.size, pixel: scale)
+        let margin = CGFloat(PixelArt.style.margin)
+        let rows = CGFloat(held.size.rows)
+        let below: CGFloat = rows - CGFloat(held.grip) - 0.5 + margin
+        item.anchorPoint = CGPoint(x: 0.5, y: below / (rows + 2 * margin))
+        // The hand is at the side of the body, three and a half rows below its middle.
+        item.position = CGPoint(x: -halfWidth - scale / 2, y: -3.5 * scale)
+        // Held at a slight angle, leaning out.
+        item.zRotation = held == .donut ? 0 : 0.18
+        if held.isBlade {
+            // Energy blades hum.
+            let hum = SKAction.sequence([.fadeAlpha(to: 0.85, duration: 0.08), .fadeAlpha(to: 1, duration: 0.12),
+                                         .wait(forDuration: 0.5)])
+            item.run(.repeatForever(hum))
+        }
+        sprite.addChild(item)
+        heldItem = item
+    }
 
     private func setUpSleep() {
         bed.size = PixelArt.spriteSize(PixelArt.bedSize, pixel: Self.pixel)
@@ -332,7 +394,7 @@ final class AgentNode: SKNode {
         if asleep {
             iconAnchor.position = CGPoint(x: -napReach - 2, y: -bodyHalf + icon.height / 2)
         } else {
-            iconAnchor.position = CGPoint(x: -halfWidth - 5 - icon.width / 2, y: 1)
+            iconAnchor.position = CGPoint(x: -halfWidth - heldClearance - 5 - icon.width / 2, y: 1)
         }
         prop.text = walking || !agent.isWorking ? "" : (agent.stage?.emoji ?? "💭")
         animateProp(for: walking || !agent.isWorking ? nil : agent.stage, thinking: agent.isWorking && agent.stage == nil)

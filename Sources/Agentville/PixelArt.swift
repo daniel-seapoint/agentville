@@ -78,7 +78,9 @@ enum PixelArt {
     enum Hat: CaseIterable {
         case beanie, topHat, partyHat, cap, crown, headphones
         case cowboy, wizard, chef, hardHat, santa, propeller, halo, viking, fez, mortarboard, bow
-        case pirate, beret, flowerCrown, bunnyEars, catEars, sprout
+        case pirate, beret, flowerCrown, bunnyEars, catEars, sprout, hood, circlet
+        case robeHood, greyWizard, pilotHelmet, ironHelmet
+        case spikyHair, messyHair, longHair, curlyHair, ponytail, buns
 
         /// The rows to draw and where the first one goes relative to the top of the head.
         fileprivate var overlay: (offset: Int, rows: [String]) {
@@ -131,19 +133,54 @@ enum PixelArt {
                 return (-2, ["..B......B..", "..BP....PB.."])
             case .sprout:
                 return (-3, ["...NN.NN....", "....NNN.....", ".....N......"])
+            case .hood:
+                // A traveller's cloak hood, falling down either side of the face.
+                return (-2, ["....gggg....", "..gggggggg..", ".gggggggggg.", "gg........gg", "g..........g",
+                             "g..........g", "gg........gg"])
+            case .circlet:
+                return (0, ["..YYYSSYYY.."])
+            case .robeHood:
+                // A plain brown robe's hood, for a wandering knight of the stars.
+                return (-2, ["....oooo....", "..oooooooo..", ".oooooooooo.", "oo........oo", "o..........o",
+                             "o..........o", "oo........oo"])
+            case .greyWizard:
+                // Tall, pointed and wide-brimmed, in travel-stained grey.
+                return (-6, [".......h....", "......hh....", ".....hhh....", "....hhhhh...", "...hhhhhhh..",
+                             "hhhhhhhhhhhh"])
+            case .pilotHelmet:
+                return (-2, ["...OOOOOO...", "..OOOWWOOO..", ".OOOOOOOOOO.", "OO........OO", "OO........OO"])
+            case .ironHelmet:
+                return (-3, ["....GGGG....", "..GGGGGGGG..", ".GGGGGGGGGG.", "..YYYYYYYY.."])
+            case .spikyHair:
+                return (-2, ["...k.kk.k...", "..kkkkkkkk.."])
+            case .messyHair:
+                return (-2, ["...kk.kkk...", "..kkkkkkkkk.", ".kkkkkkkkkk.", ".k.kk..k..k."])
+            case .longHair:
+                // Fair and flowing, down past the shoulders.
+                return (-1, ["..yyyyyyyy..", ".yyyyyyyyyy.", "yy........yy", "yy........yy", "yy........yy",
+                             "yy........yy", "yy........yy", ".y........y."])
+            case .curlyHair:
+                return (-2, ["..o.o.o.o...", ".ooooooooo..", "oooooooooooo", "o.o......o.o"])
+            case .ponytail:
+                return (-2, ["...OOOOOO...", "..OOOOOOOOOO", "..........OO", "...........O"])
+            case .buns:
+                // Hair coiled into a bun over each ear.
+                return (-1, ["...kkkkkk...", "kkkkkkkkkkkk", "kk........kk", "kk........kk"])
             }
         }
     }
 
     /// Something worn on the face or round the neck. An agent wears at most one of each.
     enum Accessory: CaseIterable {
-        case sunglasses, heartGlasses, nerdGlasses, monocle, eyepatch, mustache
-        case bowTie, scarf, necktie, goldChain
+        case sunglasses, heartGlasses, nerdGlasses, roundGlasses, monocle, eyepatch, mustache
+        case longBeard, bushyBeard
+        case bowTie, scarf, stripedScarf, necktie, goldChain, pearls
 
         var isOnFace: Bool {
             switch self {
-            case .sunglasses, .heartGlasses, .nerdGlasses, .monocle, .eyepatch, .mustache: return true
-            case .bowTie, .scarf, .necktie, .goldChain: return false
+            case .sunglasses, .heartGlasses, .nerdGlasses, .roundGlasses, .monocle, .eyepatch, .mustache,
+                 .longBeard, .bushyBeard: return true
+            case .bowTie, .scarf, .stripedScarf, .necktie, .goldChain, .pearls: return false
             }
         }
 
@@ -160,20 +197,33 @@ enum PixelArt {
             case .nerdGlasses:
                 // Frames only, so the eyes show through the lenses.
                 return (true, -1, [".KKKK..KKKK.", ".K..KKKK..K.", ".K..K..K..K.", ".KKKK..KKKK."])
+            case .roundGlasses:
+                // Thin round wire frames, a ring round each eye.
+                return (true, -1, ["..KK....KK..", ".K..K..K..K.", ".K..KKKK..K.", "..KK....KK.."])
             case .monocle:
                 return (true, -1, [".......YYYY.", ".......Y..Y.", ".......Y..Y.", ".......YYYY.", "..........Y."])
             case .eyepatch:
                 return (true, -1, [".KKKKKKKKKK.", ".KKKK.......", ".KKKK.......", "..KK........"])
             case .mustache:
                 return (true, 2, ["...oooooo...", "..oo....oo.."])
+            case .longBeard:
+                // Long and white, from under the nose to the middle of the chest.
+                return (true, 2, ["...WWWWWW...", "..WWWWWWWW..", "..WWWWWWWW..", "...WWWWWW...", "....WWWW....",
+                                  ".....WW....."])
+            case .bushyBeard:
+                return (true, 2, ["..OOOOOOOO..", ".OOOOOOOOOO.", ".OOOOOOOOOO.", "..OOOoOOOO..", "...OO..OO..."])
             case .bowTie:
                 return (false, 0, ["...RRKKRR..."])
             case .scarf:
                 return (false, 0, ["..RRRRRRRR..", ".......RR..."])
+            case .stripedScarf:
+                return (false, 0, ["..RRYYRRYY..", ".......YR...", ".......RY..."])
             case .necktie:
                 return (false, 0, [".....CC.....", ".....CC.....", "....CCCC....", ".....CC....."])
             case .goldChain:
                 return (false, 0, ["...Y....Y...", "....Y..Y....", ".....YY....."])
+            case .pearls:
+                return (false, 1, ["..W.W.W.W.W."])
             }
         }
     }
@@ -181,6 +231,9 @@ enum PixelArt {
     /// Markings on the agent's own body colour. Drawn only over the body, never over eyes or clothes.
     enum Pattern: CaseIterable {
         case plain, stripes, spots, belly, overalls
+        /// Outfits: a brown robe over a cream tunic, a charcoal school robe, a green tunic with a
+        /// belt, chainmail, and a white shirt with blue trousers.
+        case robe, schoolRobe, tunic, chainmail, shirt
 
         /// Repaints the body cells of a composed agent; `top` is the canvas row of the body map's first row.
         fileprivate func apply(to canvas: inout [[Character]], top: Int) {
@@ -204,6 +257,25 @@ enum PixelArt {
                 paint(9, 3, "c")
                 paint(9, 8, "c")
                 for row in 10...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "c") } }
+            case .robe:
+                for row in 9...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "o") } }
+                paint(9, 5, "E")
+                paint(9, 6, "E")
+                for column in 0..<PixelArt.agentColumns { paint(11, column, "k") }
+            case .schoolRobe:
+                // Charcoal rather than black, so it still shows on a dark floor.
+                for row in 9...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "H") } }
+                paint(9, 4, "W")
+                paint(9, 7, "W")
+            case .tunic:
+                for row in 9...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "g") } }
+                for column in 0..<PixelArt.agentColumns { paint(11, column, "o") }
+            case .chainmail:
+                for row in 9...11 { for column in 0..<PixelArt.agentColumns { paint(row, column, (row + column) % 2 == 0 ? "G" : "h") } }
+                for row in 12...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "h") } }
+            case .shirt:
+                for row in 9...10 { for column in 0..<PixelArt.agentColumns { paint(row, column, "W") } }
+                for row in 11...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "C") } }
             }
         }
     }
@@ -213,6 +285,69 @@ enum PixelArt {
         var hat: Hat?
         var accessories: [Accessory] = []
         var pattern: Pattern = .plain
+        /// The colour key of a cape hanging behind the agent, if it wears one.
+        var cape: Character?
+        /// What it carries in its free hand. Drawn as a separate sprite beside the agent.
+        var held: Held?
+    }
+
+    /// Things an agent can carry: energy blades in four colours, a sword, a staff, a wand, an
+    /// axe, and a donut.
+    enum Held: CaseIterable {
+        case blueBlade, greenBlade, redBlade, purpleBlade, sword, staff, wand, axe, donut
+
+        /// The map, top to bottom, and which row the hand holds.
+        fileprivate var map: (rows: [String], grip: Int) {
+            switch self {
+            case .blueBlade, .greenBlade, .redBlade, .purpleBlade:
+                // A glowing blade, white at the core, over a metal hilt. `B` is the blade's colour.
+                return ([".B.", "BWB", "BWB", "BWB", "BWB", "BWB", "BWB", "BWB", "BWB", "BWB", "BWB",
+                         ".G.", "GKG", ".G.", ".K."], 12)
+            case .sword:
+                return (["..W..", "..WG.", "..WG.", "..WG.", "..WG.", "..WG.", "..WG.", "..WG.", "YYYYY",
+                         "..o..", "..o..", "..Y.."], 9)
+            case .staff:
+                return ([".S.", "SWS", ".S.", ".o.", ".o.", ".o.", ".o.", ".o.", ".o.", ".o.", ".o.", ".o.",
+                         ".o.", ".o.", ".o.", ".o."], 12)
+            case .wand:
+                return ([".Y.", "YWY", ".Y.", ".o.", ".o.", ".o.", ".k."], 5)
+            case .axe:
+                return ([".GG.", "GGGo", "GGGo", ".GGo", "...o", "...o", "...o", "...o", "...o", "...o"], 7)
+            case .donut:
+                return ([".PPPP.", "PPYPPP", "PP..PP", "PPPYPP", ".oooo."], 2)
+            }
+        }
+
+        var size: (columns: Int, rows: Int) { (map.rows.map(\.count).max() ?? 1, map.rows.count) }
+        var grip: Int { map.grip }
+
+        /// The blade's colour; other things are drawn in their own colours.
+        fileprivate var tint: (CGFloat, CGFloat, CGFloat) {
+            switch self {
+            case .blueBlade: return (0.30, 0.60, 1.00)
+            case .greenBlade: return (0.30, 0.95, 0.40)
+            case .redBlade: return (1.00, 0.20, 0.20)
+            case .purpleBlade: return (0.75, 0.40, 1.00)
+            default: return (1, 1, 1)
+            }
+        }
+
+        var isBlade: Bool {
+            switch self {
+            case .blueBlade, .greenBlade, .redBlade, .purpleBlade: return true
+            default: return false
+            }
+        }
+    }
+
+    private static var heldCache: [Held: SKTexture] = [:]
+
+    /// The held thing in the current style.
+    static func heldTexture(_ held: Held) -> SKTexture {
+        if let cached = heldCache[held] { return cached }
+        let made = texture(rows: held.map.rows.map(Array.init), tint: held.tint)
+        heldCache[held] = made
+        return made
     }
 
     static let palette: [(CGFloat, CGFloat, CGFloat)] = [
@@ -250,6 +385,11 @@ enum PixelArt {
         "U": (0.38, 0.44, 0.66), "u": (0.28, 0.33, 0.52),   // upholstery, its seams
         "V": (0.56, 0.36, 0.86),                             // violet
         "E": (0.98, 0.94, 0.84),                             // cream
+        "T": (1.00, 0.85, 0.12),                             // cartoon skin
+        "Q": (0.80, 0.64, 0.40),                             // stubble
+        "g": (0.20, 0.36, 0.20),                             // cloak green
+        "k": (0.24, 0.15, 0.08),                             // dark brown hair, belts
+        "y": (0.96, 0.86, 0.55),                             // fair hair
     ]
 
     private static func paletteEntry(_ index: Int) -> (CGFloat, CGFloat, CGFloat) {
@@ -293,7 +433,7 @@ enum PixelArt {
         if let cached = agentCache[key] { return cached }
         let tint = paletteEntry(colorIndex)
         func frame(legs: [String], asleep: Bool) -> SKTexture {
-            texture(rows: compose(source, legs: legs, look: look, asleep: asleep), tint: tint)
+            texture(rows: compose(source, legs: legs, look: look, asleep: asleep, toon: style == .toon), tint: tint)
         }
         let textures = AgentTextures(walk: legs.map { frame(legs: $0, asleep: false) },
                                      asleep: frame(legs: legs[0], asleep: true))
@@ -359,7 +499,8 @@ enum PixelArt {
         return max(0, -(body.headTop + hat.overlay.offset))
     }
 
-    private static func compose(_ source: AgentSource, legs: [String], look: Look, asleep: Bool) -> [[Character]] {
+    private static func compose(_ source: AgentSource, legs: [String], look: Look, asleep: Bool,
+                                toon: Bool = false) -> [[Character]] {
         let body = bodies[source]!
         let bodyRows = asleep ? closingEyes(body.rows) : body.rows
         var canvas = Array(repeating: Array(repeating: Character("."), count: agentColumns), count: hatRows)
@@ -367,11 +508,34 @@ enum PixelArt {
         let headTop = hatRows + body.headTop
         // After the eyes are worked out, since a cream belly would otherwise read as eyes.
         look.pattern.apply(to: &canvas, top: hatRows)
+        if toon {
+            // Cartoon skin from the neck up, ears and antennae included, so the agent's own
+            // colour reads as its clothes. Then a stubbly muzzle round the mouth.
+            for row in 0..<(hatRows + neckRow) {
+                for column in canvas[row].indices where "BAD".contains(canvas[row][column]) {
+                    canvas[row][column] = "T"
+                }
+            }
+            let chin = hatRows + neckRow - 1
+            for column in 3...8 where canvas[chin][column] == "T" {
+                canvas[chin][column] = "Q"
+            }
+        }
 
         func overlay(_ rows: [String], at top: Int) {
             for (index, row) in rows.enumerated() where canvas.indices.contains(top + index) {
                 for (column, cell) in row.enumerated() where cell != "." {
                     canvas[top + index][column] = cell
+                }
+            }
+        }
+
+        if let cape = look.cape {
+            // Hung behind the agent: it fills only empty cells, so it shows round the shoulders,
+            // down the sides and between the legs.
+            for row in (hatRows + neckRow)..<canvas.count {
+                for column in 1...(agentColumns - 2) where canvas[row][column] == "." {
+                    canvas[row][column] = cape
                 }
             }
         }
@@ -595,6 +759,14 @@ enum PixelArt {
         case outlined
         /// Smooth, with a soft halo of its own colour, like it is lit from within.
         case glow
+        /// Cartoon sitcom: yellow skin, a stubbly muzzle and thick black ink lines.
+        case toon
+        /// A flickering blue projection with scanlines, beamed in from far away.
+        case hologram
+        /// Sepia ink on old parchment, like a hand-drawn map of a faraway land.
+        case parchment
+        /// A silvery, see-through apparition that glows and sparkles.
+        case spectral
 
         var id: Self { self }
 
@@ -604,6 +776,10 @@ enum PixelArt {
             case .pixel: return "Pixel"
             case .outlined: return "Outlined"
             case .glow: return "Glow"
+            case .toon: return "Toon"
+            case .hologram: return "Hologram"
+            case .parchment: return "Parchment"
+            case .spectral: return "Spectral"
             }
         }
 
@@ -611,8 +787,8 @@ enum PixelArt {
         var margin: Int {
             switch self {
             case .smooth, .pixel: return 0
-            case .outlined: return 1
-            case .glow: return 2
+            case .outlined, .toon, .parchment: return 1
+            case .glow, .hologram, .spectral: return 2
             }
         }
     }
@@ -635,6 +811,7 @@ enum PixelArt {
         agentCache.removeAll()
         bedCache.removeAll()
         furnitureCache.removeAll()
+        heldCache.removeAll()
     }
 
     private static func color(of cell: Character, tint: (CGFloat, CGFloat, CGFloat)) -> (CGFloat, CGFloat, CGFloat)? {
@@ -655,6 +832,10 @@ enum PixelArt {
         case .smooth: return smoothTexture(rows: rows, tint: tint)
         case .outlined: return smoothTexture(rows: rows, tint: tint, finish: .outline)
         case .glow: return smoothTexture(rows: rows, tint: tint, finish: .glow)
+        case .toon: return smoothTexture(rows: rows, tint: tint, finish: .toon)
+        case .hologram: return smoothTexture(rows: rows, tint: tint, finish: .hologram)
+        case .parchment: return smoothTexture(rows: rows, tint: tint, finish: .parchment)
+        case .spectral: return smoothTexture(rows: rows, tint: tint, finish: .spectral)
         }
     }
 
@@ -670,7 +851,7 @@ enum PixelArt {
 
     /// What the smooth renderer adds round the outside of each shape.
     private enum Finish {
-        case plain, outline, glow
+        case plain, outline, glow, toon, hologram, parchment, spectral
     }
 
     private static func pixelTexture(rows: [[Character]], tint: (CGFloat, CGFloat, CGFloat)) -> SKTexture {
@@ -737,7 +918,7 @@ enum PixelArt {
             for offset in union.indices { union[offset] += field.values[offset] }
         }
         var halo: [Float] = []
-        if finish == .glow {
+        if finish == .glow || finish == .hologram || finish == .spectral {
             halo = union
             for _ in 0..<2 { halo = boxBlur(halo, width: width, height: height, radius: cell) }
         }
@@ -746,6 +927,14 @@ enum PixelArt {
         // A glow is the agent's own colour, lifted towards white.
         let glowColor = (Float(min(1, tint.0 * 0.6 + 0.4)), Float(min(1, tint.1 * 0.6 + 0.4)),
                          Float(min(1, tint.2 * 0.6 + 0.4)))
+        // Toon lines are always black; on a dark floor a pale rim round them keeps them visible.
+        let toonInk: (Float, Float, Float) = (0.05, 0.05, 0.07)
+        let toonRim: Float = Theme.colors.isLight ? 0 : 0.9
+        let hologramBlue: (Float, Float, Float) = (0.40, 0.80, 1.0)
+        let sepiaDark: (Float, Float, Float) = (0.32, 0.19, 0.08)
+        let sepiaLight: (Float, Float, Float) = (0.97, 0.90, 0.72)
+        let sepiaInk: (Float, Float, Float) = (0.22, 0.13, 0.05)
+        let spectralSilver: (Float, Float, Float) = (0.72, 0.86, 1.0)
 
         func smoothstep(_ value: Float) -> Float {
             let x = min(max(value, 0), 1)
@@ -765,13 +954,36 @@ enum PixelArt {
                 }
             }
             // A narrow ramp around one half anti-aliases the outline.
-            let alpha = smoothstep((total - 0.42) / 0.16)
+            var alpha = smoothstep((total - 0.42) / 0.16)
             var red: Float = 0, green: Float = 0, blue: Float = 0
             if alpha > 0 {
                 let rgb = fields[strongest].rgb
                 red = Float(rgb.0) * alpha
                 green = Float(rgb.1) * alpha
                 blue = Float(rgb.2) * alpha
+            }
+            if finish == .hologram, alpha > 0 {
+                // Every colour becomes a shade of projector blue by its brightness, see-through,
+                // with every other band of rows dimmed into scanlines.
+                let brightness = (red * 0.3 + green * 0.59 + blue * 0.11) / alpha
+                let level = min(1, 0.4 + 0.8 * brightness)
+                let scanline: Float = (offset / width) % 4 < 2 ? 1 : 0.55
+                alpha *= 0.8 * scanline
+                red = hologramBlue.0 * level * alpha
+                green = hologramBlue.1 * level * alpha
+                blue = hologramBlue.2 * level * alpha
+            }
+            if finish == .parchment || finish == .spectral, alpha > 0 {
+                // Both are drawn by brightness alone: parchment in sepia from dark ink to pale
+                // paper, the apparition from silver-blue to white and see-through.
+                let brightness = min(1, (red * 0.3 + green * 0.59 + blue * 0.11) / alpha)
+                let low = finish == .parchment ? sepiaDark : spectralSilver
+                let high = finish == .parchment ? sepiaLight : (1, 1, 1)
+                let level = finish == .parchment ? brightness.squareRoot() : brightness
+                if finish == .spectral { alpha *= 0.72 }
+                red = (low.0 + (high.0 - low.0) * level) * alpha
+                green = (low.1 + (high.1 - low.1) * level) * alpha
+                blue = (low.2 + (high.2 - low.2) * level) * alpha
             }
             // Whatever is behind the shape, as premultiplied colour and coverage.
             var under: (Float, Float, Float, Float) = (0, 0, 0, 0)
@@ -785,6 +997,23 @@ enum PixelArt {
             case .glow:
                 let glow = min(1, halo[offset] * 1.6) * 0.55
                 under = (glowColor.0 * glow, glowColor.1 * glow, glowColor.2 * glow, glow)
+            case .toon:
+                // A thick black line, and outside it the rim on dark floors.
+                let line = smoothstep((total - 0.10) / 0.08)
+                let rim = smoothstep((total - 0.03) / 0.05) * toonRim
+                let ink = (toonInk.0 * line, toonInk.1 * line, toonInk.2 * line, line)
+                let pale = (1 - line) * rim
+                under = (ink.0 + pale, ink.1 + pale, ink.2 + pale, ink.3 + pale)
+            case .hologram:
+                let glow = min(1, halo[offset] * 1.6) * 0.35
+                under = (hologramBlue.0 * glow, hologramBlue.1 * glow, hologramBlue.2 * glow, glow)
+            case .parchment:
+                // A fine line of dark brown ink.
+                let line = smoothstep((total - 0.14) / 0.10)
+                under = (sepiaInk.0 * line, sepiaInk.1 * line, sepiaInk.2 * line, line)
+            case .spectral:
+                let glow = min(1, halo[offset] * 1.6) * 0.45
+                under = (spectralSilver.0 * glow, spectralSilver.1 * glow, spectralSilver.2 * glow, glow)
             }
             // The shape over whatever is under it.
             let coverage = alpha + under.3 * (1 - alpha)

@@ -43,7 +43,7 @@ final class WorkshopController {
         didSet {
             guard artStyle != oldValue else { return }
             PixelArt.style = artStyle
-            scene.restyle()
+            if !switchingTheme { scene.restyle() }
         }
     }
     /// The floor's colours and ambience.
@@ -51,6 +51,17 @@ final class WorkshopController {
         didSet {
             guard theme != oldValue else { return }
             Theme.current = theme
+            // A film or TV theme brings its own agent style. Leaving one for an ordinary theme
+            // puts back the style that was in use before, unless it was changed in between.
+            switchingTheme = true
+            if let style = theme.agentStyle {
+                if oldValue.agentStyle == nil { styleBeforeTheme = artStyle }
+                artStyle = style
+            } else if let style = styleBeforeTheme, artStyle == oldValue.agentStyle {
+                artStyle = style
+                styleBeforeTheme = nil
+            }
+            switchingTheme = false
             // Outlines are drawn in the theme's ink.
             PixelArt.clearCaches()
             applyAppearance()
@@ -80,6 +91,14 @@ final class WorkshopController {
         [ClaudeSource(), CodexSource(), CopilotSource()]
     }
     @ObservationIgnored private var timer: Timer?
+    /// Set while a theme change is also changing the style, so the floor is redrawn only once.
+    @ObservationIgnored private var switchingTheme = false
+    /// The style in use before a film or TV theme replaced it with its own. Saved, so it can be
+    /// put back even after a relaunch.
+    @ObservationIgnored private var styleBeforeTheme: PixelArt.Style? =
+        UserDefaults.standard.string(forKey: "styleBeforeTheme").flatMap(PixelArt.Style.init) {
+        didSet { UserDefaults.standard.set(styleBeforeTheme?.rawValue, forKey: "styleBeforeTheme") }
+    }
     /// Pixels per point for `--snapshot`, set with `--snapshot-scale`. Above 1 the floor is drawn
     /// offscreen at that resolution, whatever the screen's own. `--record` always uses the
     /// screen, since the offscreen renderer stops the floor moving.

@@ -1,8 +1,9 @@
 import AgentvilleCore
 import AppKit
 
-/// A sheet of every way an agent can look: each hat, accessory, pattern and colour, and the
-/// cast drawn in each art style. Drawn offscreen, for the README.
+/// A sheet of every way an agent can look: each hat, accessory, pattern, colour and thing to
+/// carry, the costumes of the film and TV themes, and the cast drawn in each art style. Drawn
+/// offscreen, for the README.
 enum Wardrobe {
     private struct Item {
         var label: String
@@ -52,6 +53,21 @@ enum Wardrobe {
             Item(label: name(pattern), source: sources[index % 3], color: index * 3 + 1,
                  look: PixelArt.Look(pattern: pattern))
         }
+        let carried = PixelArt.Held.allCases.enumerated().map { index, held in
+            Item(label: name(held), source: sources[index % 3], color: index + 5, look: PixelArt.Look(held: held))
+        }
+        // Three agents from each film and TV theme, in the costume that theme dresses them in.
+        let costumed: [(Theme, [String])] = [
+            (.starWars, ["demo:1", "demo:2", "demo:5"]), (.harryPotter, ["demo:1", "demo:3", "demo:4"]),
+            (.lordOfTheRings, ["demo:2", "demo:4", "demo:5"]), (.simpsons, ["demo:1", "demo:2", "demo:3"]),
+        ]
+        var costumes: [Item] = []
+        for (theme, ids) in costumed {
+            for (index, id) in ids.enumerated() {
+                costumes.append(Item(label: index == 1 ? theme.label : "", source: sources[index], color: index * 4 + 2,
+                                     look: Persona(agentID: id).look(for: theme)))
+            }
+        }
         let colors = PixelArt.palette.indices.map { index in
             Item(label: "", source: sources[index % 3], color: index, look: PixelArt.Look())
         }
@@ -69,9 +85,11 @@ enum Wardrobe {
             }
         }
         return [
-            ("Hats", hats),
+            ("Hats, hair and helmets", hats),
             ("Glasses, faces and neckwear", accessories),
-            ("Patterns", patterns),
+            ("Patterns and outfits", patterns),
+            ("Things to carry", carried),
+            ("Costumes", costumes),
             ("Colours", colors),
             ("Agent styles", styles),
         ]
@@ -135,5 +153,15 @@ enum Wardrobe {
         context.interpolationQuality = item.style == .pixel ? .none : .high
         context.draw(texture.cgImage(), in: CGRect(x: centerX - size.width / 2, y: feetY - margin,
                                                    width: size.width, height: size.height))
+        if let held = item.look.held {
+            // In the free hand, at the agent's side, three and a half rows up from its feet.
+            let heldSize = PixelArt.spriteSize(held.size, pixel: cell)
+            let below: CGFloat = CGFloat(held.size.rows - held.grip) - 0.5
+            let handX: CGFloat = centerX - CGFloat(PixelArt.agentColumns) * cell / 2 - cell / 2
+            let handY: CGFloat = feetY + 3.5 * cell
+            let rect = CGRect(x: handX - heldSize.width / 2, y: handY - below * cell - margin,
+                              width: heldSize.width, height: heldSize.height)
+            context.draw(PixelArt.heldTexture(held).cgImage(), in: rect)
+        }
     }
 }

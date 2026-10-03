@@ -11,6 +11,10 @@ A Mac app that turns every running session into a little cartoon agent.
 
 ![Agents moving between the Plan, Research, Build, Verify, Review and Ship stations](docs/working.gif)
 
+<p align="center">Dress the floor up in twelve themes and draw the agents in eight styles.</p>
+
+![The floor cycling through all twelve themes](docs/themes.gif)
+
 ## What you get
 
 **Working** — each agent stands at the station that matches what it is doing, tool in hand.
@@ -25,11 +29,14 @@ A Mac app that turns every running session into a little cartoon agent.
 
 ![The empty workshop](docs/empty.gif)
 
-**Themes** — eight looks for the floor, from the palette menu in the title bar: Workshop, Daylight,
-Forest, Ocean, Space, Sunset, Terminal and Winter. Each has its own colours and a little
-ambience: fireflies in the forest, bubbles in the ocean, stars, embers, snow, and CRT scanlines.
-
-![The floor cycling through all eight themes](docs/themes.gif)
+**Themes** — twelve looks for the floor, from the palette menu in the title bar: Workshop,
+Daylight, Forest, Ocean, Space, Sunset, Terminal and Winter, plus four fan tributes: The
+Simpsons, Star Wars, Lord of the Rings and Harry Potter. Each has its own colours and a little
+ambience: fireflies in the forest, bubbles in the ocean, stars, embers, snow, CRT scanlines,
+cartoon clouds over a sunny suburb, a jump to lightspeed, autumn leaves over a hillside with a
+burrow for a lounge, and floating candles in a great hall whose stations light up in four banner
+colours. Picking one of the four tributes also dresses the agents in costume and switches them
+to the style made for that world; going back to an ordinary theme puts your style back.
 
 <table>
 <tr>
@@ -48,10 +55,23 @@ ambience: fireflies in the forest, bubbles in the ocean, stars, embers, snow, an
 <td><img src="docs/themes/terminal.png" alt="Terminal theme"><p align="center">Terminal</p></td>
 <td><img src="docs/themes/winter.png" alt="Winter theme"><p align="center">Winter</p></td>
 </tr>
+<tr>
+<td><img src="docs/themes/simpsons.png" alt="The Simpsons theme, with Toon agents"><p align="center">The Simpsons</p></td>
+<td><img src="docs/themes/starWars.png" alt="Star Wars theme, with Hologram agents"><p align="center">Star Wars</p></td>
+</tr>
+<tr>
+<td><img src="docs/themes/lordOfTheRings.png" alt="Lord of the Rings theme, with Parchment agents"><p align="center">Lord of the Rings</p></td>
+<td><img src="docs/themes/harryPotter.png" alt="Harry Potter theme, with Spectral agents"><p align="center">Harry Potter</p></td>
+</tr>
 </table>
 
-**Agent styles** — draw the agents smooth, as pixel art, with a cartoon outline, or glowing.
-Same menu.
+**Agent styles** — draw the agents smooth, as pixel art, with an outline, glowing, as
+yellow-skinned sitcom toons, as flickering blue holograms, in sepia ink on parchment, or as
+silvery sparkling apparitions. Same menu. Toon, Hologram, Parchment and Spectral come with The
+Simpsons, Star Wars, Lord of the Rings and Harry Potter themes and are shown here on them, but
+any style can be picked with any theme.
+
+![The agents cycling through all eight styles](docs/styles.gif)
 
 <table>
 <tr>
@@ -62,13 +82,30 @@ Same menu.
 <td><img src="docs/styles/outlined.png" alt="Outlined agents"><p align="center">Outlined</p></td>
 <td><img src="docs/styles/glow.png" alt="Glowing agents"><p align="center">Glow</p></td>
 </tr>
+<tr>
+<td><img src="docs/styles/toon.png" alt="Toon agents on the The Simpsons theme"><p align="center">Toon</p></td>
+<td><img src="docs/styles/hologram.png" alt="Hologram agents on the Star Wars theme"><p align="center">Hologram</p></td>
+</tr>
+<tr>
+<td><img src="docs/styles/parchment.png" alt="Parchment agents on the Lord of the Rings theme"><p align="center">Parchment</p></td>
+<td><img src="docs/styles/spectral.png" alt="Spectral agents on the Harry Potter theme"><p align="center">Spectral</p></td>
+</tr>
 </table>
 
-**Wardrobe** — every agent gets its own look, kept for as long as the session lives: one of 23
-hats, glasses or a mustache, something round its neck, stripes, spots, a belly patch or
-overalls, and one of 15 colours.
+**Costumes** — on the four fan-tribute themes everyone dresses for the world they are in:
 
-![Every hat, accessory, pattern, colour and style](docs/wardrobe.png)
+- **Star Wars**: hooded robes, pilot helmets and capes, and an energy blade in blue, green,
+  red or purple.
+- **Harry Potter**: school robes, pointed hats, round glasses, striped scarves and a wand.
+- **Lord of the Rings**: a grey wizard with a long beard and a staff, fair-haired travellers in
+  cloaks with swords, and helmeted axe-bearers with bushy beards.
+- **The Simpsons**: everyday hair, shirts and ties, pearls, overalls and the odd donut.
+
+**Wardrobe** — every agent gets its own look, kept for as long as the session lives: one of 35
+hats, hairstyles and helmets, glasses, a mustache or a beard, something round its neck, a
+pattern or an outfit, and one of 15 colours.
+
+![Every hat, accessory, outfit, colour, thing to carry, costume and style](docs/wardrobe.png)
 
 **Agent list and close-up** — open the list from the header, or click an agent to see its recent tasks.
 
@@ -161,3 +198,7 @@ An agent's station is worked out from what its session is doing:
 
 The Claude, OpenAI and GitHub Copilot logos are trademarks of their owners and are used here
 only to label each agent's provider.
+
+The Simpsons, Star Wars, The Lord of the Rings and Harry Potter are trademarks of their
+respective owners. The themes named after them are fan tributes: Agentville is not affiliated
+with or endorsed by any of them, and uses no artwork, characters or logos from them.

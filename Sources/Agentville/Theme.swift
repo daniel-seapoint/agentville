@@ -4,6 +4,9 @@ import AppKit
 /// The agents keep their own colours whatever the theme.
 enum Theme: String, CaseIterable, Identifiable {
     case workshop, daylight, forest, ocean, space, sunset, terminal, winter
+    /// Fan tributes to four film and TV worlds. Each dresses the agents in costume for that
+    /// world (see `Persona.look(for:)`) and brings its own agent style with it.
+    case simpsons, starWars, lordOfTheRings, harryPotter
 
     var id: Self { self }
 
@@ -17,6 +20,21 @@ enum Theme: String, CaseIterable, Identifiable {
         case .sunset: return "Sunset"
         case .terminal: return "Terminal"
         case .winter: return "Winter"
+        case .simpsons: return "The Simpsons"
+        case .starWars: return "Star Wars"
+        case .lordOfTheRings: return "Lord of the Rings"
+        case .harryPotter: return "Harry Potter"
+        }
+    }
+
+    /// The agent style that goes with this theme, picked along with it.
+    var agentStyle: PixelArt.Style? {
+        switch self {
+        case .simpsons: return .toon
+        case .starWars: return .hologram
+        case .lordOfTheRings: return .parchment
+        case .harryPotter: return .spectral
+        default: return nil
         }
     }
 
@@ -32,6 +50,14 @@ enum Theme: String, CaseIterable, Identifiable {
     /// What moves over the floor, behind the agents.
     enum Ambience {
         case none, stars, bubbles, fireflies, embers, snow, scanlines
+        /// Fat cartoon clouds drifting across a blue sky.
+        case clouds
+        /// Stars, and every so often the jump to lightspeed.
+        case hyperspace
+        /// Autumn leaves tumbling down on the wind.
+        case leaves
+        /// Candles floating overhead, their flames flickering.
+        case candles
     }
 
     struct Colors {
@@ -57,6 +83,10 @@ enum Theme: String, CaseIterable, Identifiable {
         var bubbleInk: NSColor
         var isLight: Bool
         var ambience: Ambience
+        /// Text on the station tiles, when it differs from `ink`.
+        var stationInk: NSColor? = nil
+        /// Colours for the lit stations, taken in turn along the row, instead of `activeStation`.
+        var banners: [NSColor] = []
     }
 
     var colors: Colors {
@@ -142,6 +172,55 @@ enum Theme: String, CaseIterable, Identifiable {
                           button: rgb(0.21, 0.40, 0.62), buttonStroke: rgb(0.55, 0.80, 1), buttonInk: white,
                           link: rgb(0.6, 0.85, 1), bubble: rgb(0.07, 0.10, 0.15, 0.95), bubbleInk: white,
                           isLight: false, ambience: .snow)
+        case .simpsons:
+            // A sunny cartoon suburb: sky blue, bold dark lines, a pink-walled living room.
+            let line = rgb(0.10, 0.10, 0.16)
+            return Colors(background: rgb(0.36, 0.66, 0.90), panel: rgb(0.52, 0.79, 0.96),
+                          panelStroke: line, grid: rgb(1, 1, 1, 0.12),
+                          lounge: rgb(0.86, 0.62, 0.80), loungeStroke: line, ink: line,
+                          station: rgb(1, 0.98, 0.92), stationStroke: line,
+                          activeStation: rgb(1, 0.86, 0.20), activeStationStroke: line,
+                          button: rgb(1, 0.85, 0.13), buttonStroke: line, buttonInk: line,
+                          link: rgb(0.80, 0.20, 0.45), bubble: rgb(1, 1, 1, 0.97), bubbleInk: line,
+                          isLight: true, ambience: .clouds)
+        case .starWars:
+            // A galaxy far away: black space, gold lettering, saber-blue and saber-red trim.
+            let gold = rgb(1, 0.84, 0.28)
+            return Colors(background: rgb(0, 0, 0.012), panel: rgb(0.012, 0.014, 0.035),
+                          panelStroke: rgb(1, 0.84, 0.28, 0.22), grid: rgb(1, 1, 1, 0.018),
+                          lounge: rgb(0.80, 0.62, 0.40, 0.08), loungeStroke: rgb(0.85, 0.66, 0.42, 0.30), ink: gold,
+                          station: rgb(0.05, 0.05, 0.08), stationStroke: rgb(1, 1, 1, 0.12),
+                          activeStation: rgb(0.04, 0.12, 0.26), activeStationStroke: rgb(0.40, 0.78, 1),
+                          button: rgb(0.30, 0.04, 0.05), buttonStroke: rgb(1, 0.25, 0.22), buttonInk: rgb(1, 0.93, 0.90),
+                          link: gold, bubble: rgb(0.01, 0.01, 0.03, 0.95), bubbleInk: rgb(0.95, 0.95, 1),
+                          isLight: false, ambience: .hyperspace)
+        case .lordOfTheRings:
+            // A green and pleasant hillside: parchment signs in brown ink and a wood-panelled
+            // burrow for a lounge.
+            let cream = rgb(0.98, 0.94, 0.80)
+            let gold = rgb(0.88, 0.72, 0.32)
+            return Colors(background: rgb(0.16, 0.25, 0.11), panel: rgb(0.27, 0.42, 0.19),
+                          panelStroke: rgb(0.12, 0.20, 0.08), grid: rgb(1, 1, 0.8, 0.05),
+                          lounge: rgb(0.50, 0.34, 0.19), loungeStroke: rgb(0.32, 0.20, 0.10), ink: cream,
+                          station: rgb(0.90, 0.83, 0.64), stationStroke: rgb(0.45, 0.30, 0.15),
+                          activeStation: rgb(0.99, 0.85, 0.46), activeStationStroke: rgb(0.55, 0.33, 0.08),
+                          button: rgb(0.16, 0.30, 0.12), buttonStroke: gold, buttonInk: cream,
+                          link: gold, bubble: rgb(0.17, 0.11, 0.06, 0.95), bubbleInk: cream,
+                          isLight: false, ambience: .leaves, stationInk: rgb(0.30, 0.18, 0.08))
+        case .harryPotter:
+            // A great hall at night: dark stone, candlelight, and banners in four colours.
+            let candle = rgb(1, 0.93, 0.78)
+            let gold = rgb(0.90, 0.74, 0.35)
+            return Colors(background: rgb(0.04, 0.03, 0.06), panel: rgb(0.09, 0.075, 0.10),
+                          panelStroke: rgb(0.90, 0.74, 0.35, 0.25), grid: rgb(1, 0.85, 0.6, 0.03),
+                          lounge: rgb(0.45, 0.09, 0.10, 0.35), loungeStroke: rgb(0.85, 0.68, 0.30, 0.40), ink: candle,
+                          station: rgb(0.13, 0.11, 0.14), stationStroke: rgb(0.90, 0.74, 0.35, 0.20),
+                          activeStation: rgb(0.52, 0.10, 0.12), activeStationStroke: gold,
+                          button: rgb(0.40, 0.08, 0.10), buttonStroke: gold, buttonInk: candle,
+                          link: gold, bubble: rgb(0.07, 0.05, 0.08, 0.95), bubbleInk: candle,
+                          isLight: false, ambience: .candles,
+                          banners: [rgb(0.55, 0.10, 0.12), rgb(0.08, 0.38, 0.22), rgb(0.12, 0.22, 0.52),
+                                    rgb(0.70, 0.52, 0.10)])
         }
     }
 

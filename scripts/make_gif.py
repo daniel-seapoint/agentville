@@ -1,7 +1,7 @@
-"""Shrinks the theme and style screenshots and joins the recorded theme clips into one GIF.
+"""Shrinks the theme and style screenshots and joins recorded clips into one GIF.
 
-Usage: make_gif.py <recordings folder> <docs folder> <theme> [<theme> ...]
-Each theme's recording is a folder of numbered PNGs made with `Agentville --record`.
+Usage: make_gif.py <docs folder> <gif name> <clip folder> [<clip folder> ...]
+Each clip is a folder of numbered PNGs made with `Agentville --record`; they play in the order given.
 """
 import glob
 import os
@@ -10,10 +10,10 @@ import sys
 from PIL import Image
 
 WIDTH = 1600
-# The GIF is smaller: every other recorded frame, eight per theme.
+# The GIF is smaller: every other recorded frame, eight per clip.
 GIF_WIDTH = 800
 STEP = 2
-FRAMES_PER_THEME = 8
+FRAMES_PER_CLIP = 8
 
 
 def shrink(image, width=WIDTH):
@@ -23,25 +23,25 @@ def shrink(image, width=WIDTH):
 
 
 def main():
-    recordings, docs, themes = sys.argv[1], sys.argv[2], sys.argv[3:]
+    docs, name, clips = sys.argv[1], sys.argv[2], sys.argv[3:]
 
     # Stills, at the width the README shows them.
     for path in glob.glob(os.path.join(docs, "themes", "*.png")) + glob.glob(os.path.join(docs, "styles", "*.png")):
         shrink(Image.open(path).convert("RGB")).save(path, optimize=True)
 
     frames = []
-    for theme in themes:
-        paths = sorted(glob.glob(os.path.join(recordings, theme, "frame_*.png")))[::STEP][:FRAMES_PER_THEME]
+    for clip_folder in clips:
+        paths = sorted(glob.glob(os.path.join(clip_folder, "frame_*.png")))[::STEP][:FRAMES_PER_CLIP]
         if not paths:
-            print(f"no frames for {theme}", file=sys.stderr)
+            print(f"no frames in {clip_folder}", file=sys.stderr)
             continue
         clip = [shrink(Image.open(path).convert("RGB"), GIF_WIDTH) for path in paths]
-        # One palette per theme keeps its colours true and lets unchanged pixels carry over.
+        # One palette per clip keeps its colours true and lets unchanged pixels carry over.
         palette = clip[0].quantize(colors=128, method=Image.Quantize.MEDIANCUT)
         frames += [frame.quantize(palette=palette, dither=Image.Dither.NONE) for frame in clip]
     if not frames:
         sys.exit("no frames recorded")
-    out = os.path.join(docs, "themes.gif")
+    out = os.path.join(docs, name)
     frames[0].save(out, save_all=True, append_images=frames[1:], duration=100 * STEP, loop=0, optimize=True)
     print(out, len(frames), "frames", os.path.getsize(out) // 1024, "KB")
 
