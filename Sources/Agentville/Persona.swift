@@ -78,7 +78,7 @@ extension Persona {
             if maybe(0.6) { accessories.append(.stripedScarf) }
             let hats: [PixelArt.Hat] = [.wizard, .wizard, .messyHair, .longHair, .ponytail, .curlyHair]
             let hat = pick(hats)
-            let cape: Character? = maybe(0.4) ? "K" : nil
+            let cape: Character? = maybe(0.4) ? "H" : nil
             let held: PixelArt.Held? = maybe(0.9) ? .wand : nil
             return PixelArt.Look(hat: hat, accessories: accessories, pattern: .schoolRobe, cape: cape, held: held)
         case .hearthland:

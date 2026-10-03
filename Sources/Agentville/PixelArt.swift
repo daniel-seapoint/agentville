@@ -208,8 +208,8 @@ enum PixelArt {
                 return (true, 2, ["...oooooo...", "..oo....oo.."])
             case .longBeard:
                 // Long and white, from under the nose to the middle of the chest.
-                return (true, 2, ["..WWWWWWWW..", ".WWWWWWWWWW.", ".WWWWWWWWWW.", "..WWWWWWWW..", "...WWWWWW...",
-                                  "....WWWW....", ".....WW....."])
+                return (true, 2, ["...WWWWWW...", "..WWWWWWWW..", "..WWWWWWWW..", "...WWWWWW...", "....WWWW....",
+                                  ".....WW....."])
             case .bushyBeard:
                 return (true, 2, ["..OOOOOOOO..", ".OOOOOOOOOO.", ".OOOOOOOOOO.", "..OOOoOOOO..", "...OO..OO..."])
             case .bowTie:
@@ -231,7 +231,7 @@ enum PixelArt {
     /// Markings on the agent's own body colour. Drawn only over the body, never over eyes or clothes.
     enum Pattern: CaseIterable {
         case plain, stripes, spots, belly, overalls
-        /// Outfits: a brown robe over a cream tunic, a black school robe, a green tunic with a
+        /// Outfits: a brown robe over a cream tunic, a charcoal school robe, a green tunic with a
         /// belt, chainmail, and a white shirt with blue trousers.
         case robe, schoolRobe, tunic, chainmail, shirt
 
@@ -263,7 +263,8 @@ enum PixelArt {
                 paint(9, 6, "E")
                 for column in 0..<PixelArt.agentColumns { paint(11, column, "k") }
             case .schoolRobe:
-                for row in 9...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "K") } }
+                // Charcoal rather than black, so it still shows on a dark floor.
+                for row in 9...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "H") } }
                 paint(9, 4, "W")
                 paint(9, 7, "W")
             case .tunic:
