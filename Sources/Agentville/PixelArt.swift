@@ -532,7 +532,7 @@ enum PixelArt {
         if let cape = look.cape {
             // Hung behind the agent: it fills only empty cells, so it shows round the shoulders,
             // down the sides and between the legs.
-            for row in (hatRows + neckRow)...(hatRows + bodyRows - 1) {
+            for row in (hatRows + neckRow)..<canvas.count {
                 for column in 1...(agentColumns - 2) where canvas[row][column] == "." {
                     canvas[row][column] = cape
                 }
