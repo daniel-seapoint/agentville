@@ -52,6 +52,10 @@ final class AgentNode: SKNode {
     /// Half the height of the agent's body, and how far a hat rises above it.
     private let bodyHalf: CGFloat
     private let hatHeight: CGFloat
+    /// Half the width of the agent as drawn, without any margin round its texture.
+    private let halfWidth: CGFloat
+    /// The bed as drawn, without any margin its texture has round it.
+    private let bedArea: CGSize
 
     static let pixel: CGFloat = 2.5
     /// Distance from a full-size agent's centre down to the floor it stands on.
@@ -59,7 +63,6 @@ final class AgentNode: SKNode {
     private static let walkSpeed: CGFloat = 170
     /// How far a agent is lifted when it sits on one of the lounge's couches.
     private static let couchSeat: CGFloat = 6
-    private static let bubbleFill = NSColor(srgbRed: 0.08, green: 0.09, blue: 0.11, alpha: 0.96)
 
     init(agent: AgentSnapshot, at point: CGPoint) {
         self.agent = agent
@@ -68,31 +71,37 @@ final class AgentNode: SKNode {
         compact = agent.isSubagent
         persona = Persona(agentID: agent.id)
         color = PixelArt.color(agent.colorIndex)
-        textures = PixelArt.agentTextures(source: agent.source, colorIndex: agent.colorIndex,
-                                  hat: persona.hat, accessory: persona.accessory)
+        textures = PixelArt.agentTextures(source: agent.source, colorIndex: agent.colorIndex, look: persona.look)
         sprite = SKSpriteNode(texture: textures.walk[0])
         bed = SKSpriteNode(texture: PixelArt.bed(colorIndex: agent.colorIndex))
         icon = BadgeNode(source: agent.source, logoSide: 13, showsName: false)
 
         let scale = Self.pixel * (compact ? 0.6 : 1)
+        halfWidth = CGFloat(PixelArt.agentColumns) * scale / 2
+        bedArea = CGSize(width: CGFloat(PixelArt.bedSize.columns) * Self.pixel,
+                         height: CGFloat(PixelArt.bedSize.rows) * Self.pixel)
         bodyHalf = CGFloat(PixelArt.bodyRows) * scale / 2
-        hatHeight = CGFloat(PixelArt.rowsAboveBody(source: agent.source, hat: persona.hat)) * scale
+        hatHeight = CGFloat(PixelArt.rowsAboveBody(source: agent.source, hat: persona.look.hat)) * scale
         super.init()
         position = point
 
         // The texture has spare rows on top for hats; anchor on the middle of the body below them.
-        sprite.size = CGSize(width: CGFloat(PixelArt.agentColumns) * scale, height: CGFloat(PixelArt.canvasRows) * scale)
-        sprite.anchorPoint = CGPoint(x: 0.5, y: CGFloat(PixelArt.bodyRows) / 2 / CGFloat(PixelArt.canvasRows))
+        // Some styles leave a margin round the texture too, which the anchor has to allow for.
+        sprite.size = PixelArt.spriteSize((PixelArt.agentColumns, PixelArt.canvasRows), pixel: scale)
+        let margin = CGFloat(PixelArt.style.margin)
+        let anchorRow: CGFloat = CGFloat(PixelArt.bodyRows) / 2 + margin
+        let textureRows: CGFloat = CGFloat(PixelArt.canvasRows) + 2 * margin
+        sprite.anchorPoint = CGPoint(x: 0.5, y: anchorRow / textureRows)
         addChild(sprite)
 
         prop.fontSize = compact ? 10 : 15
         prop.verticalAlignmentMode = .center
-        propHome = CGPoint(x: sprite.size.width / 2 + (compact ? 6 : 10), y: -2)
+        propHome = CGPoint(x: halfWidth + (compact ? 6 : 10), y: -2)
         prop.position = propHome
         addChild(prop)
 
         bubble.lineWidth = 1
-        bubble.fillColor = Self.bubbleFill
+        bubble.fillColor = Theme.colors.bubble
         bubble.strokeColor = color.withAlphaComponent(0.55)
         // Subagents stand beside their parent, so their label hangs below to stay clear of it.
         bubble.position = CGPoint(x: 0, y: compact ? -bodyHalf - 25 : bodyHalf + hatHeight + 7)
@@ -126,14 +135,13 @@ final class AgentNode: SKNode {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     private func setUpSleep() {
-        let bedSize = PixelArt.bedSize
-        bed.size = CGSize(width: CGFloat(bedSize.columns) * Self.pixel, height: CGFloat(bedSize.rows) * Self.pixel)
-        bed.position = CGPoint(x: 0, y: -bodyHalf + bed.size.height / 2) // legs on the floor
+        bed.size = PixelArt.spriteSize(PixelArt.bedSize, pixel: Self.pixel)
+        bed.position = CGPoint(x: 0, y: -bodyHalf + bedArea.height / 2) // legs on the floor
         addChild(bed)
 
         // One keepsake on the right of a sleeper; the provider icon takes the spot on the left.
         // Beds and the lounge's couches are the same width, so either way things sit this far out.
-        napReach = bed.size.width / 2 + 13
+        napReach = bedArea.width / 2 + 13
         if let emoji = persona.props.last {
             let node = SKLabelNode(text: emoji)
             node.fontSize = 14
@@ -145,7 +153,7 @@ final class AgentNode: SKNode {
 
         dreamPill.lineWidth = 1
         // Same box as the working label, so an agent's label keeps its shape when it nods off.
-        dreamPill.fillColor = Self.bubbleFill
+        dreamPill.fillColor = Theme.colors.bubble
         dreamPill.strokeColor = color.withAlphaComponent(0.55)
         dream.addChild(dreamPill)
         for dot in dreamDots {
@@ -160,8 +168,9 @@ final class AgentNode: SKNode {
             dream.addChild(label)
         }
         dreamLabel.attributedText = .label("Dreaming of \(persona.dream)…", size: 10, weight: .semibold,
-                                           color: NSColor(white: 1, alpha: 0.92))
-        snoreLabel.attributedText = .label("z z z", size: 9.5, weight: .medium, color: NSColor(white: 1, alpha: 0.6))
+                                           color: Theme.colors.bubbleInk.withAlphaComponent(0.92))
+        snoreLabel.attributedText = .label("z z z", size: 9.5, weight: .medium,
+                                           color: Theme.colors.bubbleInk.withAlphaComponent(0.6))
         let breathe = SKAction.sequence([.fadeAlpha(to: 0.25, duration: 1.1), .fadeAlpha(to: 1, duration: 1.1)])
         snoreLabel.run(.repeatForever(breathe))
 
@@ -187,7 +196,7 @@ final class AgentNode: SKNode {
     /// Height of the top of a sleeper: the bed, or the agent's head (and hat), which is higher
     /// still when it is sitting up on a couch.
     private func dreamBase(inBed: Bool, onCouch: Bool) -> CGFloat {
-        inBed ? bed.position.y + bed.size.height / 2 : bodyHalf + hatHeight + (onCouch ? Self.couchSeat : 0)
+        inBed ? bed.position.y + bedArea.height / 2 : bodyHalf + hatHeight + (onCouch ? Self.couchSeat : 0)
     }
 
     func update(_ newAgent: AgentSnapshot) {
@@ -323,7 +332,7 @@ final class AgentNode: SKNode {
         if asleep {
             iconAnchor.position = CGPoint(x: -napReach - 2, y: -bodyHalf + icon.height / 2)
         } else {
-            iconAnchor.position = CGPoint(x: -sprite.size.width / 2 - 5 - icon.width / 2, y: 1)
+            iconAnchor.position = CGPoint(x: -halfWidth - 5 - icon.width / 2, y: 1)
         }
         prop.text = walking || !agent.isWorking ? "" : (agent.stage?.emoji ?? "💭")
         animateProp(for: walking || !agent.isWorking ? nil : agent.stage, thinking: agent.isWorking && agent.stage == nil)
@@ -350,14 +359,17 @@ final class AgentNode: SKNode {
         shownText = text
 
         if asleep {
-            caption.attributedText = .label(agent.title.truncated(22), size: 9, color: NSColor(white: 1, alpha: 0.45))
+            caption.attributedText = .label(agent.title.truncated(22), size: 9, color: Theme.colors.ink.withAlphaComponent(0.5))
             return
         }
 
-        let titleColor = NSColor(white: 1, alpha: agent.isWorking ? 0.95 : 0.55)
+        let ink = Theme.colors.bubbleInk
+        let titleColor = ink.withAlphaComponent(agent.isWorking ? 0.95 : 0.55)
+        // On a light bubble the agent's colour is darkened so the status stays readable.
+        let statusColor = Theme.colors.isLight ? (color.blended(withFraction: 0.4, of: .black) ?? color) : color
         titleLabel.attributedText = .label(title, size: compact ? 9 : 11, weight: .medium, color: titleColor)
         statusLabel.attributedText = .label(status, size: 10,
-                                            color: agent.isWorking ? color : NSColor(white: 1, alpha: 0.4))
+                                            color: agent.isWorking ? statusColor : ink.withAlphaComponent(0.4))
 
         let lineHeight: CGFloat = 14
         let width = max(titleLabel.frame.width, compact ? 0 : statusLabel.frame.width) + 16

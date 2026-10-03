@@ -122,7 +122,7 @@ class FadingNode: SKNode {
 private func addSteam(to node: SKNode, from points: [CGPoint]) {
     for (index, start) in points.enumerated() {
         let puff = SKShapeNode(circleOfRadius: 1.6)
-        puff.fillColor = NSColor(white: 1, alpha: 0.7)
+        puff.fillColor = Theme.colors.ink.withAlphaComponent(0.7)
         puff.strokeColor = .clear
         puff.position = start
         puff.alpha = 0
@@ -150,7 +150,7 @@ final class BreakNoteNode: FadingNode {
         let cells = PixelArt.mugSize
         let pixel: CGFloat = 3
         let mug = SKSpriteNode(texture: PixelArt.mug())
-        mug.size = CGSize(width: CGFloat(cells.columns) * pixel, height: CGFloat(cells.rows) * pixel)
+        mug.size = PixelArt.spriteSize(cells, pixel: pixel)
         mug.position = CGPoint(x: 3, y: 29)
         addChild(mug)
         // A slow rock, as if someone just put it down.
@@ -160,18 +160,18 @@ final class BreakNoteNode: FadingNode {
         back.timingMode = .easeInEaseOut
         mug.run(.repeatForever(.sequence([tilt, back])))
 
-        let rim = mug.position.y + mug.size.height / 2 + 1
+        let rim = mug.position.y + CGFloat(cells.rows) * pixel / 2 + 1
         addSteam(to: self, from: [CGPoint(x: -6, y: rim), CGPoint(x: -1, y: rim), CGPoint(x: 4, y: rim)])
 
         let headline = SKLabelNode()
         headline.attributedText = .label("Everyone's on a break", size: 16, weight: .semibold,
-                                         color: NSColor(white: 1, alpha: 0.88))
+                                         color: Theme.colors.ink.withAlphaComponent(0.88))
         headline.position = CGPoint(x: 0, y: 2)
         addChild(headline)
 
         let hint = SKLabelNode()
         hint.attributedText = .label("They'll get back to work when you send them something.",
-                                     size: 12, color: NSColor(white: 1, alpha: 0.45))
+                                     size: 12, color: Theme.colors.ink.withAlphaComponent(0.5))
         hint.position = CGPoint(x: 0, y: -18)
         addChild(hint)
     }
@@ -194,13 +194,15 @@ final class EmptyStateNode: FadingNode {
         super.init()
         let bench = SKSpriteNode(texture: PixelArt.workbench())
         let cells = PixelArt.workbenchSize
-        bench.size = CGSize(width: CGFloat(cells.columns) * Self.pixel, height: CGFloat(cells.rows) * Self.pixel)
+        bench.size = PixelArt.spriteSize(cells, pixel: Self.pixel)
         bench.position = CGPoint(x: 0, y: 52)
         addChild(bench)
+        // The bench as drawn, leaving out any margin the art style puts round its texture.
+        let benchArea = CGSize(width: CGFloat(cells.columns) * Self.pixel, height: CGFloat(cells.rows) * Self.pixel)
 
         // Positions below are in bench pixels from its top-left corner, converted to points.
-        let left = bench.position.x - bench.size.width / 2
-        let top = bench.position.y + bench.size.height / 2
+        let left = bench.position.x - benchArea.width / 2
+        let top = bench.position.y + benchArea.height / 2
         func point(_ column: CGFloat, _ row: CGFloat) -> CGPoint {
             CGPoint(x: left + column * Self.pixel, y: top - row * Self.pixel)
         }
@@ -236,8 +238,8 @@ final class EmptyStateNode: FadingNode {
         // A robot vacuum patrolling the floor behind the bench, turning round at each end.
         let vacuumCells = PixelArt.vacuumSize
         let vacuum = SKSpriteNode(texture: PixelArt.vacuum())
-        vacuum.size = CGSize(width: CGFloat(vacuumCells.columns) * 3, height: CGFloat(vacuumCells.rows) * 3)
-        let floorY = bench.position.y - bench.size.height / 2 + vacuum.size.height / 2
+        vacuum.size = PixelArt.spriteSize(vacuumCells, pixel: 3)
+        let floorY = bench.position.y - benchArea.height / 2 + CGFloat(vacuumCells.rows) * 3 / 2
         let reach: CGFloat = 170
         vacuum.position = CGPoint(x: -reach, y: floorY)
         vacuum.zPosition = -2
@@ -254,9 +256,9 @@ final class EmptyStateNode: FadingNode {
         let dogCells = PixelArt.dogSize
         let dogFrames = PixelArt.dog()
         let dog = SKSpriteNode(texture: dogFrames[0])
-        dog.size = CGSize(width: CGFloat(dogCells.columns) * 3, height: CGFloat(dogCells.rows) * 3)
-        dog.position = CGPoint(x: bench.size.width / 2 + 34,
-                               y: bench.position.y - bench.size.height / 2 + dog.size.height / 2)
+        dog.size = PixelArt.spriteSize(dogCells, pixel: 3)
+        dog.position = CGPoint(x: benchArea.width / 2 + 34,
+                               y: bench.position.y - benchArea.height / 2 + CGFloat(dogCells.rows) * 3 / 2)
         dog.run(.repeatForever(.animate(with: dogFrames, timePerFrame: 0.2)))
         let home = dog.position
         dog.run(.repeatForever(.sequence([
@@ -277,13 +279,13 @@ final class EmptyStateNode: FadingNode {
 
         let headline = SKLabelNode()
         headline.attributedText = .label("It's quiet in here", size: 16, weight: .semibold,
-                                         color: NSColor(white: 1, alpha: 0.9))
+                                         color: Theme.colors.ink.withAlphaComponent(0.9))
         headline.position = CGPoint(x: 0, y: -8)
         addChild(headline)
 
         let hint = SKLabelNode()
         hint.attributedText = .label("Start a session and your agent will walk right in.",
-                                     size: 12, color: NSColor(white: 1, alpha: 0.5))
+                                     size: 12, color: Theme.colors.ink.withAlphaComponent(0.55))
         hint.position = CGPoint(x: 0, y: -30)
         addChild(hint)
 
@@ -298,7 +300,7 @@ final class EmptyStateNode: FadingNode {
             addChild(badge)
         }
         demoLink.attributedText = .label("See a demo  ›", size: 12, weight: .medium,
-                                         color: NSColor(srgbRed: 0.45, green: 0.66, blue: 1, alpha: 1))
+                                         color: Theme.colors.link)
         demoLink.position = CGPoint(x: 0, y: -50 - (badges.first?.height ?? 0) - 28)
         addChild(demoLink)
 

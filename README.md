@@ -25,9 +25,50 @@ A Mac app that turns every running session into a little cartoon agent.
 
 ![The empty workshop](docs/empty.gif)
 
-**Pixel style** — switch the artwork between smooth and pixel art.
+**Themes** — eight looks for the floor, from the palette menu in the title bar: Workshop, Daylight,
+Forest, Ocean, Space, Sunset, Terminal and Winter. Each has its own colours and a little
+ambience: fireflies in the forest, bubbles in the ocean, stars, embers, snow, and CRT scanlines.
 
-![The floor in pixel art](docs/pixel-style.png)
+![The floor cycling through all eight themes](docs/themes.gif)
+
+<table>
+<tr>
+<td><img src="docs/themes/workshop.png" alt="Workshop theme"><p align="center">Workshop</p></td>
+<td><img src="docs/themes/daylight.png" alt="Daylight theme"><p align="center">Daylight</p></td>
+</tr>
+<tr>
+<td><img src="docs/themes/forest.png" alt="Forest theme"><p align="center">Forest</p></td>
+<td><img src="docs/themes/ocean.png" alt="Ocean theme"><p align="center">Ocean</p></td>
+</tr>
+<tr>
+<td><img src="docs/themes/space.png" alt="Space theme"><p align="center">Space</p></td>
+<td><img src="docs/themes/sunset.png" alt="Sunset theme"><p align="center">Sunset</p></td>
+</tr>
+<tr>
+<td><img src="docs/themes/terminal.png" alt="Terminal theme"><p align="center">Terminal</p></td>
+<td><img src="docs/themes/winter.png" alt="Winter theme"><p align="center">Winter</p></td>
+</tr>
+</table>
+
+**Agent styles** — draw the agents smooth, as pixel art, with a cartoon outline, or glowing.
+Same menu.
+
+<table>
+<tr>
+<td><img src="docs/styles/smooth.png" alt="Smooth agents"><p align="center">Smooth</p></td>
+<td><img src="docs/styles/pixel.png" alt="Pixel art agents"><p align="center">Pixel</p></td>
+</tr>
+<tr>
+<td><img src="docs/styles/outlined.png" alt="Outlined agents"><p align="center">Outlined</p></td>
+<td><img src="docs/styles/glow.png" alt="Glowing agents"><p align="center">Glow</p></td>
+</tr>
+</table>
+
+**Wardrobe** — every agent gets its own look, kept for as long as the session lives: one of 23
+hats, glasses or a mustache, something round its neck, stripes, spots, a belly patch or
+overalls, and one of 15 colours.
+
+![Every hat, accessory, pattern, colour and style](docs/wardrobe.png)
 
 **Agent list and close-up** — open the list from the header, or click an agent to see its recent tasks.
 
@@ -88,6 +129,10 @@ open build/Agentville.app
 ```
 
 Then start a Claude Code, Codex or Copilot CLI session and its agent walks in.
+
+The theme and agent-style pictures in this README come from the scripted demo:
+`./scripts/screenshots.sh` renders them on a Mac, and CI runs it for any commit whose message
+contains `[screenshots]`.
 
 ## How it works
 

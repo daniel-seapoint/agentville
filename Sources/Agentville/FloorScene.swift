@@ -48,7 +48,10 @@ final class FloorScene: SKScene {
     private var emptyState = EmptyStateNode()
     /// Where rebuilt agents should reappear; only set during `restyle`.
     private var respawn: [String: CGPoint] = [:]
-    private let breakNote = BreakNoteNode()
+    private var breakNote = BreakNoteNode()
+    /// The theme's weather: stars, bubbles, fireflies and so on, behind everything else.
+    private let ambience = SKNode()
+    private var ambienceFor = ""
     private let lounge = SKShapeNode()
     private let loungeLabel = SKLabelNode()
     /// The lounge's furniture: three couches, two lamps and two plants. It is always there,
@@ -75,24 +78,16 @@ final class FloorScene: SKScene {
     override init() {
         super.init(size: CGSize(width: 1000, height: 560))
         scaleMode = .resizeFill
-        backgroundColor = NSColor(srgbRed: 0.04, green: 0.045, blue: 0.055, alpha: 1)
 
-        panel.fillColor = NSColor(srgbRed: 0.063, green: 0.07, blue: 0.09, alpha: 1)
-        panel.strokeColor = NSColor(white: 1, alpha: 0.08)
         panel.zPosition = -3
-        grid.strokeColor = NSColor(white: 1, alpha: 0.035)
         grid.lineWidth = 1
         grid.zPosition = -2
-        countButton.fillColor = NSColor(srgbRed: 0.16, green: 0.28, blue: 0.52, alpha: 1)
-        countButton.strokeColor = NSColor(srgbRed: 0.30, green: 0.50, blue: 0.90, alpha: 1)
+        ambience.zPosition = -1.5
         countButton.lineWidth = 1
-        lounge.fillColor = NSColor(white: 1, alpha: 0.03)
-        lounge.strokeColor = NSColor(white: 1, alpha: 0.09)
         lounge.lineWidth = 1
         lounge.zPosition = -1
         loungeLabel.horizontalAlignmentMode = .left
         loungeLabel.verticalAlignmentMode = .top
-        loungeLabel.attributedText = .label("LOUNGE", size: 9, weight: .semibold, color: NSColor(white: 1, alpha: 0.35))
         let demoText = SKLabelNode()
         demoText.attributedText = .label("DEMO", size: 9, weight: .bold,
                                          color: NSColor(srgbRed: 0.10, green: 0.08, blue: 0.02, alpha: 1))
@@ -105,7 +100,7 @@ final class FloorScene: SKScene {
         demoTag.strokeColor = .clear
         demoTag.isHidden = true
         demoTag.addChild(demoText)
-        [panel, grid, lounge, loungeLabel, furniture, titleLabel, demoTag, countButton, countLabel, legend, emptyState, breakNote].forEach(addChild)
+        [panel, grid, ambience, lounge, loungeLabel, furniture, titleLabel, demoTag, countButton, countLabel, legend, emptyState, breakNote].forEach(addChild)
         var legendX: CGFloat = 0
         for source in [AgentSource.claude, .codex, .copilot] {
             let plate = ProviderPlate(source: source, height: Metrics.headerButtonHeight)
@@ -117,7 +112,6 @@ final class FloorScene: SKScene {
         legendWidth = legendX - 6
 
         titleLabel.horizontalAlignmentMode = .left
-        titleLabel.attributedText = .label("Agentville", size: 14, weight: .semibold, color: .white)
         countLabel.horizontalAlignmentMode = .right
 
         for stage in Stage.allCases {
@@ -126,8 +120,26 @@ final class FloorScene: SKScene {
             addChild(node)
         }
         isSetUp = true
+        applyTheme()
         layoutStatic()
         refreshHeader()
+    }
+
+    /// Colours everything that is not rebuilt by `restyle`.
+    private func applyTheme() {
+        let colors = Theme.colors
+        backgroundColor = colors.background
+        panel.fillColor = colors.panel
+        panel.strokeColor = colors.panelStroke
+        grid.strokeColor = colors.grid
+        countButton.fillColor = colors.button
+        countButton.strokeColor = colors.buttonStroke
+        lounge.fillColor = colors.lounge
+        lounge.strokeColor = colors.loungeStroke
+        loungeLabel.attributedText = .label("LOUNGE", size: 9, weight: .semibold,
+                                            color: colors.ink.withAlphaComponent(0.4))
+        titleLabel.attributedText = .label("Agentville", size: 14, weight: .semibold, color: colors.ink)
+        stations.values.forEach { $0.applyState() }
     }
 
     @available(*, unavailable)
@@ -166,9 +178,16 @@ final class FloorScene: SKScene {
         refreshHeader()
     }
 
-    /// Rebuilds everything drawn from the character maps after `PixelArt.style` changes.
-    /// Agents come back where they were standing rather than walking in again.
+    /// Rebuilds everything drawn from the character maps after `PixelArt.style` or `Theme.current`
+    /// changes. Agents come back where they were standing rather than walking in again.
     func restyle() {
+        applyTheme()
+        let noteShown = !breakNote.isHidden
+        breakNote.removeFromParent()
+        breakNote = BreakNoteNode()
+        breakNote.setVisible(noteShown)
+        addChild(breakNote)
+        ambienceFor = ""
         respawn = agentNodes.mapValues(\.position)
         agentNodes.values.forEach { $0.removeFromParent() }
         agentNodes.removeAll()
@@ -213,7 +232,7 @@ final class FloorScene: SKScene {
         }
         // A button, with a chevron to say it drops down.
         countLabel.attributedText = .label(text + "  ▾", size: 12, weight: .semibold,
-                                           color: NSColor(white: 1, alpha: 0.92))
+                                           color: Theme.colors.buttonInk.withAlphaComponent(0.95))
         positionLegend()
         emptyState.setVisible(allAgents.isEmpty)
         breakNote.setVisible(!topLevel.isEmpty && working == 0)
@@ -249,6 +268,7 @@ final class FloorScene: SKScene {
             y += 30
         }
         grid.path = lines
+        fillAmbience(in: frame)
 
         titleLabel.position = CGPoint(x: Metrics.margin, y: size.height - 38)
         demoTag.position = CGPoint(x: titleLabel.frame.maxX + 12 + demoTag.frame.width / 2, y: titleLabel.frame.midY)
@@ -284,7 +304,7 @@ final class FloorScene: SKScene {
     /// Puts the lounge's furniture in place: the couches, a lamp at the left end, a plant at
     /// the right, and a lamp and a plant either side of the middle couch. Only rebuilt when the floor changes size or style.
     private func furnishLounge() {
-        let key = "\(size)-\(PixelArt.style)"
+        let key = "\(size)-\(PixelArt.style)-\(Theme.current)"
         guard key != furnishedFor else { return }
         furnishedFor = key
         furniture.removeAllChildren()
@@ -292,9 +312,9 @@ final class FloorScene: SKScene {
         /// Stands a piece on the floor line the lounge's agents stand on.
         func place(_ item: PixelArt.Furniture, x: CGFloat) {
             let node = SKSpriteNode(texture: PixelArt.furniture(item))
-            node.size = CGSize(width: CGFloat(item.size.columns) * AgentNode.pixel,
-                               height: CGFloat(item.size.rows) * AgentNode.pixel)
-            node.position = CGPoint(x: x, y: Metrics.loungeSeatY - AgentNode.feet + node.size.height / 2)
+            node.size = PixelArt.spriteSize(item.size, pixel: AgentNode.pixel)
+            let height = CGFloat(item.size.rows) * AgentNode.pixel
+            node.position = CGPoint(x: x, y: Metrics.loungeSeatY - AgentNode.feet + height / 2)
             furniture.addChild(node)
         }
         for couch in loungeCouches { place(.couch, x: couch.x) }
@@ -385,6 +405,155 @@ final class FloorScene: SKScene {
         }
     }
 
+    // MARK: Ambience
+
+    /// Fills the floor with the theme's ambience. Placed from a fixed seed, so it looks the same
+    /// every time, and only rebuilt when the floor changes size or theme.
+    private func fillAmbience(in frame: CGRect) {
+        let key = "\(frame.size)-\(Theme.current)"
+        guard key != ambienceFor else { return }
+        ambienceFor = key
+        ambience.removeAllChildren()
+        var random = StableRandom(seed: key)
+        func point() -> CGPoint {
+            CGPoint(x: frame.minX + random.unit() * frame.width, y: frame.minY + random.unit() * frame.height)
+        }
+        func dot(_ radius: CGFloat, _ color: NSColor) -> SKShapeNode {
+            let node = SKShapeNode(circleOfRadius: radius)
+            node.fillColor = color
+            node.strokeColor = .clear
+            ambience.addChild(node)
+            return node
+        }
+        let area = frame.width * frame.height
+
+        switch Theme.colors.ambience {
+        case .none:
+            break
+        case .stars:
+            // Stars of a few sizes, each twinkling at its own pace.
+            for _ in 0..<Int(area / 2600) {
+                let star = dot(0.6 + random.unit() * 1.1, NSColor(white: 1, alpha: 1))
+                star.position = point()
+                star.alpha = 0.25 + random.unit() * 0.6
+                let pace = 1.2 + Double(random.unit()) * 2.4
+                star.run(.repeatForever(.sequence([.fadeAlpha(to: 0.1, duration: pace),
+                                                   .fadeAlpha(to: star.alpha, duration: pace)])))
+            }
+            // Now and then a shooting star.
+            let streak = SKShapeNode(rectOf: CGSize(width: 46, height: 1.4), cornerRadius: 0.7)
+            streak.fillColor = NSColor(white: 1, alpha: 0.8)
+            streak.strokeColor = .clear
+            streak.zRotation = -0.35
+            streak.alpha = 0
+            ambience.addChild(streak)
+            let start = CGPoint(x: frame.minX + frame.width * 0.25, y: frame.maxY - 60)
+            streak.run(.repeatForever(.sequence([
+                .wait(forDuration: 5),
+                .move(to: start, duration: 0),
+                .group([.sequence([.fadeIn(withDuration: 0.1), .wait(forDuration: 0.4), .fadeOut(withDuration: 0.2)]),
+                        .moveBy(x: 260, y: -95, duration: 0.7)]),
+            ])))
+        case .bubbles:
+            // Bubbles rising from the sea floor and wobbling as they go.
+            for index in 0..<Int(frame.width / 28) {
+                let bubble = dot(1.5 + random.unit() * 3, NSColor(srgbRed: 0.6, green: 0.88, blue: 1, alpha: 0.05))
+                bubble.strokeColor = NSColor(srgbRed: 0.6, green: 0.88, blue: 1, alpha: 0.35)
+                bubble.lineWidth = 1
+                let x = frame.minX + random.unit() * frame.width
+                let rise = Double(frame.height / (24 + random.unit() * 30))
+                bubble.position = CGPoint(x: x, y: frame.minY)
+                let wobble = SKAction.sequence([.moveBy(x: 6, y: 0, duration: 0.9), .moveBy(x: -6, y: 0, duration: 0.9)])
+                bubble.run(.repeatForever(wobble))
+                // Start partway up, so the floor is full of bubbles from the first frame.
+                let head = CGFloat(index % 7) / 7
+                bubble.position.y = frame.minY + frame.height * head
+                bubble.run(.sequence([
+                    .moveTo(y: frame.maxY, duration: rise * Double(1 - head)),
+                    .repeatForever(.sequence([.moveTo(y: frame.minY, duration: 0), .moveTo(y: frame.maxY, duration: rise)])),
+                ]))
+            }
+        case .fireflies:
+            // Fireflies drifting about, glowing and fading.
+            for _ in 0..<Int(area / 26000) {
+                let fly = dot(1.8, NSColor(srgbRed: 0.85, green: 1, blue: 0.45, alpha: 1))
+                let halo = SKShapeNode(circleOfRadius: 6)
+                halo.fillColor = NSColor(srgbRed: 0.85, green: 1, blue: 0.45, alpha: 0.18)
+                halo.strokeColor = .clear
+                fly.addChild(halo)
+                fly.position = point()
+                let pace = 1 + Double(random.unit()) * 1.5
+                fly.alpha = random.unit()
+                fly.run(.repeatForever(.sequence([.fadeAlpha(to: 0.05, duration: pace), .fadeAlpha(to: 0.9, duration: pace)])))
+                var moves: [SKAction] = []
+                for _ in 0..<4 {
+                    let move = SKAction.moveBy(x: (random.unit() - 0.5) * 70, y: (random.unit() - 0.5) * 40,
+                                               duration: 2 + Double(random.unit()) * 2)
+                    move.timingMode = .easeInEaseOut
+                    moves += [move, move.reversed()]
+                }
+                fly.run(.repeatForever(.sequence(moves)))
+            }
+        case .embers:
+            // Warm sparks drifting up and fading out.
+            for index in 0..<Int(frame.width / 30) {
+                let ember = dot(1 + random.unit() * 1.2, NSColor(srgbRed: 1, green: 0.62 + random.unit() * 0.25, blue: 0.3, alpha: 1))
+                let x = frame.minX + random.unit() * frame.width
+                let duration = 5 + Double(random.unit()) * 5
+                let climb = frame.height * (0.35 + random.unit() * 0.4)
+                ember.position = CGPoint(x: x, y: frame.minY + random.unit() * frame.height * 0.3)
+                let home = ember.position
+                ember.alpha = 0
+                ember.run(.sequence([
+                    .wait(forDuration: Double(index % 9) * 0.6),
+                    .repeatForever(.sequence([
+                        .move(to: home, duration: 0),
+                        .group([.moveBy(x: (random.unit() - 0.5) * 60, y: climb, duration: duration),
+                                .sequence([.fadeAlpha(to: 0.8, duration: duration * 0.3),
+                                           .fadeOut(withDuration: duration * 0.7)])]),
+                    ])),
+                ]))
+            }
+        case .snow:
+            // Snow falling at different speeds, drifting a little sideways.
+            for _ in 0..<Int(area / 4500) {
+                let flake = dot(0.8 + random.unit() * 1.6, NSColor(white: 1, alpha: 0.35 + random.unit() * 0.45))
+                let x = frame.minX + random.unit() * frame.width
+                let y = frame.minY + random.unit() * frame.height
+                flake.position = CGPoint(x: x, y: y)
+                let speed = 14 + random.unit() * 22
+                let first = Double((y - frame.minY) / speed)
+                let full = Double(frame.height / speed)
+                let sway = SKAction.sequence([.moveBy(x: 7, y: 0, duration: 1.6), .moveBy(x: -7, y: 0, duration: 1.6)])
+                sway.timingMode = .easeInEaseOut
+                flake.run(.repeatForever(sway))
+                flake.run(.sequence([
+                    .moveTo(y: frame.minY, duration: first),
+                    .repeatForever(.sequence([.moveTo(y: frame.maxY, duration: 0), .moveTo(y: frame.minY, duration: full)])),
+                ]))
+            }
+        case .scanlines:
+            // Faint CRT lines, with a brighter band rolling slowly down the screen.
+            let lines = CGMutablePath()
+            var y = frame.minY
+            while y < frame.maxY {
+                lines.move(to: CGPoint(x: frame.minX, y: y))
+                lines.addLine(to: CGPoint(x: frame.maxX, y: y))
+                y += 3
+            }
+            let scan = SKShapeNode(path: lines)
+            scan.strokeColor = NSColor(white: 0, alpha: 0.35)
+            scan.lineWidth = 1
+            ambience.addChild(scan)
+            let band = SKShapeNode(rect: CGRect(x: frame.minX, y: -20, width: frame.width, height: 40))
+            band.fillColor = NSColor(srgbRed: 0.3, green: 1, blue: 0.45, alpha: 0.035)
+            band.strokeColor = .clear
+            ambience.addChild(band)
+            band.run(.repeatForever(.sequence([.moveTo(y: frame.maxY + 20, duration: 0),
+                                               .moveTo(y: frame.minY - 20, duration: 6)])))
+        }
+    }
+
     // MARK: Input
 
     override func mouseDown(with event: NSEvent) {
@@ -451,15 +620,12 @@ private final class StationNode: SKNode {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    private func applyState() {
-        tile.fillColor = isActive
-            ? NSColor(srgbRed: 0.12, green: 0.22, blue: 0.43, alpha: 1)
-            : NSColor(srgbRed: 0.09, green: 0.10, blue: 0.12, alpha: 1)
-        tile.strokeColor = isActive
-            ? NSColor(srgbRed: 0.25, green: 0.45, blue: 0.85, alpha: 1)
-            : NSColor(white: 1, alpha: 0.07)
+    func applyState() {
+        let colors = Theme.colors
+        tile.fillColor = isActive ? colors.activeStation : colors.station
+        tile.strokeColor = isActive ? colors.activeStationStroke : colors.stationStroke
         icon.alpha = isActive ? 1 : 0.4
         nameLabel.attributedText = .label(stage.title, size: 10, weight: .medium,
-                                     color: NSColor(white: 1, alpha: isActive ? 0.95 : 0.35))
+                                          color: colors.ink.withAlphaComponent(isActive ? 0.95 : 0.4))
     }
 }

@@ -1,5 +1,6 @@
 import AgentvilleCore
 import AppKit
+import Metal
 import Observation
 import SpriteKit
 import SwiftUI
@@ -37,11 +38,22 @@ final class WorkshopController {
     var floatOnTop = false {
         didSet { applyWindowLevel() }
     }
-    /// Hard-edged pixel art instead of the smooth rendering.
-    var pixelArt = PixelArt.style == .pixel {
+    /// How the agents and furniture are drawn: smooth, pixel art, outlined or glowing.
+    var artStyle = PixelArt.style {
         didSet {
-            guard pixelArt != oldValue else { return }
-            PixelArt.style = pixelArt ? .pixel : .smooth
+            guard artStyle != oldValue else { return }
+            PixelArt.style = artStyle
+            scene.restyle()
+        }
+    }
+    /// The floor's colours and ambience.
+    var theme = Theme.current {
+        didSet {
+            guard theme != oldValue else { return }
+            Theme.current = theme
+            // Outlines are drawn in the theme's ink.
+            PixelArt.clearCaches()
+            applyAppearance()
             scene.restyle()
         }
     }
@@ -68,6 +80,11 @@ final class WorkshopController {
         [ClaudeSource(), CodexSource(), CopilotSource()]
     }
     @ObservationIgnored private var timer: Timer?
+    /// Pixels per point for `--snapshot`, set with `--snapshot-scale`. Above 1 the floor is drawn
+    /// offscreen at that resolution, whatever the screen's own. `--record` always uses the
+    /// screen, since the offscreen renderer stops the floor moving.
+    @ObservationIgnored private var snapshotScale: CGFloat = 1
+    @ObservationIgnored private var offscreen: OffscreenRenderer?
 
     /// Flags: `--demo [working|idle|empty]` to open on the demo, `--replay <file> [--speed N]` to
     /// play back a recorded session in place of live ones, `--snapshot <png> [--after seconds]` to save the floor and
@@ -84,6 +101,12 @@ final class WorkshopController {
             AppIcon.write(to: URL(fileURLWithPath: folder))
             exit(0)
         }
+        // `--wardrobe <png>` draws every hat, accessory, pattern, colour and art style and quits.
+        if let path = value(after: "--wardrobe") {
+            Wardrobe.write(to: URL(fileURLWithPath: path))
+            exit(0)
+        }
+        snapshotScale = value(after: "--snapshot-scale").flatMap(Double.init).map { CGFloat($0) } ?? 1
         if let path = value(after: "--replay") {
             let speed = value(after: "--speed").flatMap(Double.init) ?? 1
             makeLiveSources = { [ReplaySource(url: URL(fileURLWithPath: path), speed: speed)] }
@@ -129,7 +152,8 @@ final class WorkshopController {
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
                 var frame = 0
                 let recorder = Timer(timeInterval: 0.1, repeats: true) { timer in
-                    self?.saveSnapshot(to: url.appendingPathComponent(String(format: "frame_%03d.png", frame)))
+                    self?.saveSnapshot(to: url.appendingPathComponent(String(format: "frame_%03d.png", frame)),
+                                       offscreen: false)
                     frame += 1
                     if frame >= frames {
                         timer.invalidate()
@@ -178,6 +202,14 @@ final class WorkshopController {
         scene.sync(store.agents)
     }
 
+    /// Light themes get light window chrome and popovers; the rest stay dark.
+    func applyAppearance() {
+        let appearance = NSAppearance(named: Theme.colors.isLight ? .aqua : .darkAqua)
+        for window in NSApp.windows where window.canBecomeMain {
+            window.appearance = appearance
+        }
+    }
+
     private func applyWindowLevel() {
         for window in NSApp.windows where window.canBecomeMain {
             window.level = floatOnTop ? .floating : .normal
@@ -187,8 +219,8 @@ final class WorkshopController {
     /// One agent's popover, for checking it without clicking.
     @MainActor private func saveDetailSnapshot(of agentID: String, to url: URL) {
         let renderer = ImageRenderer(content: AgentDetailPopover(store: store, agentID: agentID)
-            .background(Color(white: 0.13))
-            .environment(\.colorScheme, .dark))
+            .background(Color(white: Theme.colors.isLight ? 0.95 : 0.13))
+            .environment(\.colorScheme, Theme.colors.isLight ? .light : .dark))
         renderer.scale = 2
         guard let image = renderer.cgImage else { return }
         try? NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])?.write(to: url)
@@ -197,19 +229,89 @@ final class WorkshopController {
     /// The agent list as it appears in its popover, for checking it without clicking.
     @MainActor private func saveListSnapshot(to url: URL) {
         let renderer = ImageRenderer(content: AgentListPopover(store: store, hidden: hiddenProviders)
-            .background(Color(white: 0.13))
-            .environment(\.colorScheme, .dark))
+            .background(Color(white: Theme.colors.isLight ? 0.95 : 0.13))
+            .environment(\.colorScheme, Theme.colors.isLight ? .light : .dark))
         renderer.scale = 2
         guard let image = renderer.cgImage else { return }
         try? NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])?.write(to: url)
     }
 
-    private func saveSnapshot(to url: URL) {
+    private func saveSnapshot(to url: URL, offscreen useOffscreen: Bool = true) {
+        if useOffscreen, snapshotScale > 1 {
+            if offscreen == nil { offscreen = OffscreenRenderer(scene: scene) }
+            if let image = offscreen?.render(scale: snapshotScale) {
+                let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
+                try? png?.write(to: url)
+                return
+            }
+            FileHandle.standardError.write(Data("offscreen snapshot failed; using the window\n".utf8))
+        }
         guard let image = scene.view?.texture(from: scene)?.cgImage() else {
             FileHandle.standardError.write(Data("snapshot failed: the scene is not on screen\n".utf8))
             return
         }
         let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
         try? png?.write(to: url)
+    }
+}
+
+/// Draws the scene into a Metal texture of any size, for snapshots sharper than the screen.
+/// Once it has the scene it also keeps it moving, since the scene is then no longer driven by
+/// its view.
+private final class OffscreenRenderer {
+    private let device: MTLDevice
+    private let queue: MTLCommandQueue
+    private let renderer: SKRenderer
+
+    init?(scene: SKScene) {
+        guard let device = MTLCreateSystemDefaultDevice(), let queue = device.makeCommandQueue() else { return nil }
+        self.device = device
+        self.queue = queue
+        size = scene.size
+        guard size.width > 0, size.height > 0 else { return nil }
+        renderer = SKRenderer(device: device)
+        renderer.scene = scene
+        // From here on this renderer drives the scene, so the view must not advance it too.
+        scene.view?.isPaused = true
+        // Keep the floor laid out at the window's size and scale it up to fill the texture,
+        // rather than letting it resize to the texture's pixels.
+        scene.scaleMode = .fill
+        scene.size = size
+    }
+
+    /// The scene's size in points, as it was in the window.
+    private let size: CGSize
+
+    func render(scale: CGFloat) -> CGImage? {
+        guard let scene = renderer.scene else { return nil }
+        if scene.size != size { scene.size = size }
+        let width = Int((size.width * scale).rounded())
+        let height = Int((size.height * scale).rounded())
+        let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm, width: width,
+                                                                  height: height, mipmapped: false)
+        descriptor.usage = [.renderTarget, .shaderRead]
+        descriptor.storageMode = .shared
+        guard let texture = device.makeTexture(descriptor: descriptor),
+              let buffer = queue.makeCommandBuffer() else { return nil }
+        let pass = MTLRenderPassDescriptor()
+        pass.colorAttachments[0].texture = texture
+        pass.colorAttachments[0].loadAction = .clear
+        pass.colorAttachments[0].storeAction = .store
+        pass.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 1)
+
+        renderer.update(atTime: CACurrentMediaTime())
+        renderer.render(withViewport: CGRect(x: 0, y: 0, width: width, height: height),
+                        commandBuffer: buffer, renderPassDescriptor: pass)
+        buffer.commit()
+        buffer.waitUntilCompleted()
+
+        let bytesPerRow = width * 4
+        var bytes = [UInt8](repeating: 0, count: bytesPerRow * height)
+        texture.getBytes(&bytes, bytesPerRow: bytesPerRow, from: MTLRegionMake2D(0, 0, width, height), mipmapLevel: 0)
+        guard let provider = CGDataProvider(data: Data(bytes) as CFData) else { return nil }
+        let info = CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue)
+        return CGImage(width: width, height: height, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: bytesPerRow,
+                       space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: info, provider: provider,
+                       decode: nil, shouldInterpolate: false, intent: .defaultIntent)
     }
 }

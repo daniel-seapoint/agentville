@@ -67,7 +67,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                   backing: .buffered, defer: false)
             window.title = "Agentville"
             window.isReleasedWhenClosed = false
-            window.appearance = NSAppearance(named: .darkAqua)
+            window.appearance = NSAppearance(named: Theme.colors.isLight ? .aqua : .darkAqua)
             window.contentMinSize = NSSize(width: 780, height: 400)
             window.contentView = NSHostingView(rootView: FloorView(controller: controller))
 

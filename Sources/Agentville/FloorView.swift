@@ -29,7 +29,7 @@ struct FloorView: View {
 }
 
 /// Title bar controls: the demo's scene picker (while the demo is on), the Live / Demo switch,
-/// the Smooth / Pixel art-style picker, and the button that keeps the window above everything.
+/// the appearance menu (theme and art style), and the button that keeps the window above everything.
 struct TitleBarControls: View {
     @Bindable var controller: WorkshopController
 
@@ -56,15 +56,30 @@ struct TitleBarControls: View {
             .labelsHidden()
             .fixedSize()
             .help("Live shows your real agents. Demo shows scripted ones to play with.")
-            // Named options rather than an icon, so it is clear what the switch changes.
-            Picker("Art style", selection: $controller.pixelArt) {
-                Text("Smooth").tag(false)
-                Text("Pixel").tag(true)
+            // One menu for both, so the title bar does not grow with every theme and style.
+            Menu {
+                Section("Theme") {
+                    Picker("Theme", selection: $controller.theme) {
+                        ForEach(Theme.allCases) { Text($0.label).tag($0) }
+                    }
+                    .pickerStyle(.inline)
+                    .labelsHidden()
+                }
+                Section("Agent style") {
+                    Picker("Agent style", selection: $controller.artStyle) {
+                        ForEach(PixelArt.Style.allCases) { Text($0.label).tag($0) }
+                    }
+                    .pickerStyle(.inline)
+                    .labelsHidden()
+                }
+            } label: {
+                Image(systemName: "paintpalette")
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            .menuStyle(.button)
+            .buttonStyle(.borderless)
+            .menuIndicator(.hidden)
             .fixedSize()
-            .help("How the agents are drawn: smooth, or hard-edged pixel art")
+            .help("Theme and agent style")
             Toggle(isOn: $controller.floatOnTop) {
                 Image(systemName: controller.floatOnTop ? "pin.fill" : "pin")
             }
@@ -147,7 +162,7 @@ struct AgentPortrait: View {
 
     var body: some View {
         let image = PixelArt.agentImage(source: agent.source, colorIndex: agent.colorIndex,
-                                        persona: Persona(agentID: agent.id), height: height)
+                                        look: Persona(agentID: agent.id).look, height: height)
         Image(nsImage: image)
             // Pixel art must stay hard-edged when scaled up; the smooth style is already large.
             .interpolation(PixelArt.style == .pixel ? .none : .high)
