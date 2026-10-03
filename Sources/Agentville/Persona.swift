@@ -52,7 +52,7 @@ struct Persona {
 }
 
 extension Persona {
-    /// What the agent wears on the floor of `theme`. The storybook themes dress everyone in
+    /// What the agent wears on the floor of `theme`. The film and TV themes dress everyone in
     /// costume for that world; the rest leave them in their everyday look. Picked from the
     /// agent's id, so an agent always wears the same costume in the same theme.
     func look(for theme: Theme) -> PixelArt.Look {
@@ -61,7 +61,7 @@ extension Persona {
         func maybe(_ probability: CGFloat) -> Bool { random.chance(probability) }
 
         switch theme {
-        case .hyperspace:
+        case .starWars:
             // Knights of the stars in hooded robes, pilots, and every one with an energy blade.
             let hats: [PixelArt.Hat?] = [.robeHood, .robeHood, .pilotHelmet, .buns, .messyHair, nil]
             let hat = pick(hats)
@@ -71,7 +71,7 @@ extension Persona {
             let cape: Character? = maybe(0.35) ? pick(capes) : nil
             let blades: [PixelArt.Held] = [.blueBlade, .greenBlade, .redBlade, .purpleBlade]
             return PixelArt.Look(hat: hat, pattern: pattern, cape: cape, held: pick(blades))
-        case .spellhall:
+        case .harryPotter:
             // Pupils of a school for wizards: robes, scarves, round glasses and wands.
             var accessories: [PixelArt.Accessory] = []
             if maybe(0.5) { accessories.append(.roundGlasses) }
@@ -81,7 +81,7 @@ extension Persona {
             let cape: Character? = maybe(0.4) ? "H" : nil
             let held: PixelArt.Held? = maybe(0.9) ? .wand : nil
             return PixelArt.Look(hat: hat, accessories: accessories, pattern: .schoolRobe, cape: cape, held: held)
-        case .hearthland:
+        case .lordOfTheRings:
             // A fellowship of the road: a grey wizard with a staff, fair-haired archers in
             // cloaks, helmeted axe-bearers with bushy beards, and sword-carrying travellers.
             let hats: [PixelArt.Hat] = [.greyWizard, .longHair, .curlyHair, .hood, .circlet, .ironHelmet]
@@ -99,7 +99,7 @@ extension Persona {
                 let weapons: [PixelArt.Held] = [.sword, .sword, .staff]
                 return PixelArt.Look(hat: hat, pattern: pattern, cape: cape, held: pick(weapons))
             }
-        case .suburbia:
+        case .simpsons:
             // A sitcom neighbourhood: everyday hair, shirts and ties, pearls, and donuts.
             var accessories: [PixelArt.Accessory] = []
             let neckwear: [PixelArt.Accessory] = [.necktie, .pearls]

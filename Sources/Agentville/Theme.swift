@@ -3,8 +3,10 @@ import AppKit
 /// The look of the floor: its colours, and a little weather or ambience drifting over it.
 /// The agents keep their own colours whatever the theme.
 enum Theme: String, CaseIterable, Identifiable {
-    case workshop, daylight, forest, ocean, space, sunset, terminal, winter, suburbia, hyperspace
-    case hearthland, spellhall
+    case workshop, daylight, forest, ocean, space, sunset, terminal, winter
+    /// Fan tributes to four film and TV worlds. Each dresses the agents in costume for that
+    /// world (see `Persona.look(for:)`) and brings its own agent style with it.
+    case simpsons, starWars, lordOfTheRings, harryPotter
 
     var id: Self { self }
 
@@ -18,10 +20,21 @@ enum Theme: String, CaseIterable, Identifiable {
         case .sunset: return "Sunset"
         case .terminal: return "Terminal"
         case .winter: return "Winter"
-        case .suburbia: return "Suburbia"
-        case .hyperspace: return "Hyperspace"
-        case .hearthland: return "Hearthland"
-        case .spellhall: return "Spellhall"
+        case .simpsons: return "The Simpsons"
+        case .starWars: return "Star Wars"
+        case .lordOfTheRings: return "Lord of the Rings"
+        case .harryPotter: return "Harry Potter"
+        }
+    }
+
+    /// The agent style that goes with this theme, picked along with it.
+    var agentStyle: PixelArt.Style? {
+        switch self {
+        case .simpsons: return .toon
+        case .starWars: return .hologram
+        case .lordOfTheRings: return .parchment
+        case .harryPotter: return .spectral
+        default: return nil
         }
     }
 
@@ -159,7 +172,7 @@ enum Theme: String, CaseIterable, Identifiable {
                           button: rgb(0.21, 0.40, 0.62), buttonStroke: rgb(0.55, 0.80, 1), buttonInk: white,
                           link: rgb(0.6, 0.85, 1), bubble: rgb(0.07, 0.10, 0.15, 0.95), bubbleInk: white,
                           isLight: false, ambience: .snow)
-        case .suburbia:
+        case .simpsons:
             // A sunny cartoon suburb: sky blue, bold dark lines, a pink-walled living room.
             let line = rgb(0.10, 0.10, 0.16)
             return Colors(background: rgb(0.36, 0.66, 0.90), panel: rgb(0.52, 0.79, 0.96),
@@ -170,7 +183,7 @@ enum Theme: String, CaseIterable, Identifiable {
                           button: rgb(1, 0.85, 0.13), buttonStroke: line, buttonInk: line,
                           link: rgb(0.80, 0.20, 0.45), bubble: rgb(1, 1, 1, 0.97), bubbleInk: line,
                           isLight: true, ambience: .clouds)
-        case .hyperspace:
+        case .starWars:
             // A galaxy far away: black space, gold lettering, saber-blue and saber-red trim.
             let gold = rgb(1, 0.84, 0.28)
             return Colors(background: rgb(0, 0, 0.012), panel: rgb(0.012, 0.014, 0.035),
@@ -181,7 +194,7 @@ enum Theme: String, CaseIterable, Identifiable {
                           button: rgb(0.30, 0.04, 0.05), buttonStroke: rgb(1, 0.25, 0.22), buttonInk: rgb(1, 0.93, 0.90),
                           link: gold, bubble: rgb(0.01, 0.01, 0.03, 0.95), bubbleInk: rgb(0.95, 0.95, 1),
                           isLight: false, ambience: .hyperspace)
-        case .hearthland:
+        case .lordOfTheRings:
             // A green and pleasant hillside: parchment signs in brown ink and a wood-panelled
             // burrow for a lounge.
             let cream = rgb(0.98, 0.94, 0.80)
@@ -194,7 +207,7 @@ enum Theme: String, CaseIterable, Identifiable {
                           button: rgb(0.16, 0.30, 0.12), buttonStroke: gold, buttonInk: cream,
                           link: gold, bubble: rgb(0.17, 0.11, 0.06, 0.95), bubbleInk: cream,
                           isLight: false, ambience: .leaves, stationInk: rgb(0.30, 0.18, 0.08))
-        case .spellhall:
+        case .harryPotter:
             // A great hall at night: dark stone, candlelight, and banners in four colours.
             let candle = rgb(1, 0.93, 0.78)
             let gold = rgb(0.90, 0.74, 0.35)

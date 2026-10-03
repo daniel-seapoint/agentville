@@ -2,7 +2,7 @@ import AgentvilleCore
 import AppKit
 
 /// A sheet of every way an agent can look: each hat, accessory, pattern, colour and thing to
-/// carry, the costumes of the storybook themes, and the cast drawn in each art style. Drawn
+/// carry, the costumes of the film and TV themes, and the cast drawn in each art style. Drawn
 /// offscreen, for the README.
 enum Wardrobe {
     private struct Item {
@@ -56,10 +56,10 @@ enum Wardrobe {
         let carried = PixelArt.Held.allCases.enumerated().map { index, held in
             Item(label: name(held), source: sources[index % 3], color: index + 5, look: PixelArt.Look(held: held))
         }
-        // Three agents from each storybook theme, in the costume that theme dresses them in.
+        // Three agents from each film and TV theme, in the costume that theme dresses them in.
         let costumed: [(Theme, [String])] = [
-            (.hyperspace, ["demo:1", "demo:2", "demo:5"]), (.spellhall, ["demo:1", "demo:3", "demo:4"]),
-            (.hearthland, ["demo:2", "demo:4", "demo:5"]), (.suburbia, ["demo:1", "demo:2", "demo:3"]),
+            (.starWars, ["demo:1", "demo:2", "demo:5"]), (.harryPotter, ["demo:1", "demo:3", "demo:4"]),
+            (.lordOfTheRings, ["demo:2", "demo:4", "demo:5"]), (.simpsons, ["demo:1", "demo:2", "demo:3"]),
         ]
         var costumes: [Item] = []
         for (theme, ids) in costumed {

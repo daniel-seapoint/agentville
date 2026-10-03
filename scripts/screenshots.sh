@@ -8,7 +8,7 @@ cd "$(dirname "$0")/.."
 
 swift build -c release
 BIN="$(swift build -c release --show-bin-path)/Agentville"
-THEMES="workshop daylight forest ocean space sunset terminal winter suburbia hyperspace hearthland spellhall"
+THEMES="workshop daylight forest ocean space sunset terminal winter simpsons starWars lordOfTheRings harryPotter"
 STYLES="smooth pixel outlined glow toon hologram parchment spectral"
 WORK="$(mktemp -d)"
 mkdir -p docs/themes docs/styles
@@ -23,19 +23,31 @@ run() {
     "$BIN" --demo working --snapshot-scale 2 "$@"
 }
 
+# The agent style each film or TV theme brings with it; the others are shown in Smooth.
+style_for() {
+    case "$1" in
+        simpsons) echo toon ;;
+        starWars) echo hologram ;;
+        lordOfTheRings) echo parchment ;;
+        harryPotter) echo spectral ;;
+        *) echo smooth ;;
+    esac
+}
+
 for theme in $THEMES; do
-    echo "Theme: $theme"
-    run --snapshot "docs/themes/$theme.png" --after 16 -theme "$theme" -artStyle smooth
-    run --record "$WORK/themes/$theme" --after 16 --seconds 2 -theme "$theme" -artStyle smooth
+    style="$(style_for "$theme")"
+    echo "Theme: $theme in $style"
+    run --snapshot "docs/themes/$theme.png" --after 16 -theme "$theme" -artStyle "$style"
+    run --record "$WORK/themes/$theme" --after 16 --seconds 2 -theme "$theme" -artStyle "$style"
     echo "  recorded $(ls "$WORK/themes/$theme" | wc -l | tr -d ' ') frames"
 done
 # Most styles are shown on the Workshop floor; the themed ones on the theme made for them.
 for style in $STYLES; do
     case "$style" in
-        toon) theme=suburbia ;;
-        hologram) theme=hyperspace ;;
-        parchment) theme=hearthland ;;
-        spectral) theme=spellhall ;;
+        toon) theme=simpsons ;;
+        hologram) theme=starWars ;;
+        parchment) theme=lordOfTheRings ;;
+        spectral) theme=harryPotter ;;
         *) theme=workshop ;;
     esac
     echo "Style: $style on $theme"
