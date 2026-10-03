@@ -50,7 +50,8 @@ final class FloorScene: SKScene {
     private var respawn: [String: CGPoint] = [:]
     private var breakNote = BreakNoteNode()
     /// The theme's weather: stars, bubbles, fireflies and so on, behind everything else.
-    private let ambience = SKNode()
+    /// Cropped to the floor, so clouds and streaks do not spill past its rounded edge.
+    private let ambience = SKCropNode()
     private var ambienceFor = ""
     private let lounge = SKShapeNode()
     private let loungeLabel = SKLabelNode()
@@ -414,6 +415,10 @@ final class FloorScene: SKScene {
         guard key != ambienceFor else { return }
         ambienceFor = key
         ambience.removeAllChildren()
+        let mask = SKShapeNode(rect: frame, cornerRadius: 10)
+        mask.fillColor = .white
+        mask.strokeColor = .clear
+        ambience.maskNode = mask
         var random = StableRandom(seed: key)
         func point() -> CGPoint {
             CGPoint(x: frame.minX + random.unit() * frame.width, y: frame.minY + random.unit() * frame.height)
@@ -594,12 +599,16 @@ final class FloorScene: SKScene {
                     .sequence([.fadeAlpha(to: 0.9, duration: 0.25), .wait(forDuration: 0.4), .fadeOut(withDuration: 0.25)]),
                 ])
                 jump.timingMode = .easeIn
-                streak.run(.repeatForever(.sequence([
-                    .wait(forDuration: 3 + Double(random.unit()) * 0.3),
-                    jump,
-                    .move(to: home, duration: 0), .scaleX(to: 1, duration: 0),
-                    .wait(forDuration: 4),
-                ])))
+                // A jump about every five seconds, all streaks together give or take a moment.
+                let lag = Double(random.unit()) * 0.2
+                streak.run(.sequence([
+                    .wait(forDuration: 2 + lag),
+                    .repeatForever(.sequence([
+                        jump,
+                        .move(to: home, duration: 0), .scaleX(to: 1, duration: 0),
+                        .wait(forDuration: 4),
+                    ])),
+                ]))
                 ambience.addChild(streak)
             }
         case .scanlines:
