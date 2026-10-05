@@ -250,3 +250,8 @@ only to label each agent's provider.
 The Simpsons, Star Wars, The Lord of the Rings and Harry Potter are trademarks of their
 respective owners. The themes named after them are fan tributes: Agentville is not affiliated
 with or endorsed by any of them, and uses no artwork, characters or logos from them.
+
+## Licence
+
+Agentville is open source under the [MIT Licence](LICENSE). The logos and trademarks named
+under Credits are not covered by it and remain with their owners.
