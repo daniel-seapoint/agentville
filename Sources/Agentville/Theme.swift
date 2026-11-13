@@ -7,6 +7,9 @@ enum Theme: String, CaseIterable, Identifiable {
     /// Fan tributes to four film and TV worlds. Each dresses the agents in costume for that
     /// world (see `Persona.look(for:)`) and brings its own agent style with it.
     case simpsons, starWars, lordOfTheRings, shire, harryPotter
+    /// A Christmas floor at the North Pole, listed under Seasonal. Like the film and TV
+    /// themes, it dresses the agents in costume and casts them as characters of its own.
+    case santaClaude
 
     var id: Self { self }
 
@@ -25,6 +28,7 @@ enum Theme: String, CaseIterable, Identifiable {
         case .lordOfTheRings: return "Lord of the Rings: Mordor"
         case .shire: return "Lord of the Rings: The Shire"
         case .harryPotter: return "Harry Potter"
+        case .santaClaude: return "Santa Claude"
         }
     }
 
@@ -35,6 +39,13 @@ enum Theme: String, CaseIterable, Identifiable {
         default: return false
         }
     }
+
+    /// The seasonal floors, listed in a section of their own.
+    var isSeasonal: Bool { self == .santaClaude }
+
+    /// Whether the theme dresses its agents in costume and brings its own agent style: the
+    /// film and TV tributes and the seasonal floors.
+    var isCostumed: Bool { isTribute || isSeasonal }
 
     /// The two Lord of the Rings scenes.
     var isMiddleEarth: Bool { self == .lordOfTheRings || self == .shire }
@@ -47,12 +58,16 @@ enum Theme: String, CaseIterable, Identifiable {
     static let middleEarthScenes: [Theme] = [.lordOfTheRings, .shire]
 
     /// The everyday floors, listed first in the menu.
-    static var everyday: [Theme] { allCases.filter { !$0.isTribute } }
+    static var everyday: [Theme] { allCases.filter { !$0.isCostumed } }
+    /// The seasonal floors, listed after the film and TV tributes.
+    static var seasonal: [Theme] { allCases.filter(\.isSeasonal) }
+    /// Every theme with a cast of named characters: the film and TV worlds, then the seasons.
+    static var costumed: [Theme] { filmAndTV + seasonal }
     /// The film and TV tributes, listed in a section of their own.
     static var tributes: [Theme] { allCases.filter(\.isTribute) }
 
     /// The agent styles offered with this theme. Every theme has Smooth and Pixel; the everyday
-    /// themes and The Simpsons add Toon, and Star Wars adds Hologram.
+    /// themes, The Simpsons and Santa Claude add Toon, and Star Wars adds Hologram.
     var styles: [PixelArt.Style] {
         switch self {
         case .simpsons: return [.toon, .smooth, .pixel]
@@ -62,12 +77,12 @@ enum Theme: String, CaseIterable, Identifiable {
         }
     }
 
-    /// The style a film or TV theme switches the agents to when it is picked: Toon for The
+    /// The style a costumed theme switches the agents to when it is picked: Toon for The
     /// Simpsons and Smooth for the rest. The other styles it offers can still be chosen.
     var agentStyle: PixelArt.Style? {
         switch self {
         case .simpsons: return .toon
-        case .starWars, .lordOfTheRings, .shire, .harryPotter: return .smooth
+        case .starWars, .lordOfTheRings, .shire, .harryPotter, .santaClaude: return .smooth
         default: return nil
         }
     }
@@ -100,6 +115,10 @@ enum Theme: String, CaseIterable, Identifiable {
         /// A great hall at night: a starry enchanted ceiling, tall glowing windows with house
         /// banners between them, an owl now and then, and the floating candles.
         case greatHall
+        /// The North Pole at night: northern lights and stars, snowy drifts dotted with fir
+        /// trees, a big decorated tree, fairy lights strung between the stations, snow
+        /// falling, and a sleigh pulled by reindeer flying across now and then.
+        case northPole
     }
 
     struct Colors {
@@ -277,6 +296,20 @@ enum Theme: String, CaseIterable, Identifiable {
                           isLight: false, ambience: .greatHall,
                           banners: [rgb(0.55, 0.10, 0.12), rgb(0.08, 0.38, 0.22), rgb(0.12, 0.22, 0.52),
                                     rgb(0.70, 0.52, 0.10)])
+        case .santaClaude:
+            // A snowy night at the North Pole: deep midnight blue, snow-white lettering, tiles
+            // like iced gingerbread, and lit stations in Christmas red and green with gold trim.
+            let snow = rgb(0.97, 0.98, 1)
+            let gold = rgb(1, 0.82, 0.36)
+            return Colors(background: rgb(0.03, 0.06, 0.12), panel: rgb(0.05, 0.10, 0.19),
+                          panelStroke: rgb(1, 0.82, 0.36, 0.22), grid: rgb(1, 1, 1, 0.025),
+                          lounge: rgb(0.30, 0.08, 0.08, 0.55), loungeStroke: rgb(1, 0.82, 0.36, 0.35), ink: snow,
+                          station: rgb(0.09, 0.15, 0.26), stationStroke: rgb(1, 1, 1, 0.14),
+                          activeStation: rgb(0.66, 0.12, 0.14), activeStationStroke: gold,
+                          button: rgb(0.62, 0.10, 0.13), buttonStroke: gold, buttonInk: snow,
+                          link: gold, bubble: rgb(0.04, 0.08, 0.15, 0.95), bubbleInk: snow,
+                          isLight: false, ambience: .northPole,
+                          banners: [rgb(0.66, 0.12, 0.14), rgb(0.10, 0.45, 0.24)])
         }
     }
 

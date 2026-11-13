@@ -60,6 +60,7 @@ enum Wardrobe {
         let costumed: [(Theme, [String])] = [
             (.starWars, ["demo:1", "demo:2", "demo:5"]), (.harryPotter, ["demo:1", "demo:3", "demo:4"]),
             (.lordOfTheRings, ["demo:2", "demo:4", "demo:5"]), (.simpsons, ["demo:1", "demo:2", "demo:3"]),
+            (.santaClaude, ["demo:1", "demo:2", "demo:3"]),
         ]
         var costumes: [Item] = []
         for (theme, ids) in costumed {
@@ -95,14 +96,14 @@ enum Wardrobe {
         ]
     }
 
-    /// Writes one sheet per film or TV cast into `folder`, every character labelled with its
+    /// Writes one sheet per film, TV or seasonal cast into `folder`, every character labelled with its
     /// name and drawn on that theme's floor colours: `cast-<key>.png`.
     static func writeCasts(to folder: URL) {
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let previousTheme = Theme.current
         defer { Theme.current = previousTheme }
         let sources: [AgentSource] = [.claude, .codex, .copilot]
-        for theme in [Theme.simpsons, .starWars, .lordOfTheRings, .harryPotter] {
+        for theme in [Theme.simpsons, .starWars, .lordOfTheRings, .harryPotter, .santaClaude] {
             guard let key = Cast.key(for: theme) else { continue }
             Theme.current = theme
             PixelArt.clearCaches()

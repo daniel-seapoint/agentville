@@ -92,12 +92,16 @@ enum PixelArt {
         /// Costume only: a black dark-lord helmet, a white trooper helmet, and a grey bounty
         /// hunter's helmet.
         case darkHelmet, trooperHelmet, hunterHelmet
+        /// Costume only, for the North Pole: a floppy green elf's hat with a bell on the tip, a
+        /// reindeer's antlers, and a toy soldier's tall bearskin with a red plume.
+        case elfHat, antlers, bearskin
 
         /// The hats an agent can be given on an everyday theme. Leaves out the ones kept for a
         /// costume, without changing which hat anyone already has.
         static var everyday: [Hat] {
             allCases.filter { ![.schoolHat, .whiteWizard, .witchHat, .beehive, .twoHairs,
-                                .darkHelmet, .trooperHelmet, .hunterHelmet].contains($0) }
+                                .darkHelmet, .trooperHelmet, .hunterHelmet,
+                                .elfHat, .antlers, .bearskin].contains($0) }
         }
 
         /// The rows to draw and where the first one goes relative to the top of the head.
@@ -132,6 +136,13 @@ enum PixelArt {
                 return (-3, ["....YYYY....", "...YYWWYY...", ".YYYYYYYYYY."])
             case .santa:
                 return (-4, ["....RRR.....", "...RRRRRR...", "..RRRRRRRRWW", "..WWWWWWWW.."])
+            case .elfHat:
+                // Pointed and floppy, the tip flopping over to one side with a gold bell on it.
+                return (-4, [".........eY.", "......eeee..", "....eeeee...", "..eeeeeeee..", "..RRRRRRRR.."])
+            case .antlers:
+                return (-4, ["o..o....o..o", ".oo......oo.", "..o......o..", "...o....o..."])
+            case .bearskin:
+                return (-5, ["...HHHHHH.R.", "..HHHHHHHHR.", "..HhHHHHHH..", "..HHHHHHHH..", "..YYYYYYYY.."])
             case .propeller:
                 return (-4, [".RRRRGGYYYY.", ".....GG.....", "...CCRRCC...", "..CCYYYYCC.."])
             case .halo:
@@ -286,6 +297,11 @@ enum PixelArt {
         /// Costume only: a hobbit's green waistcoat over a cream shirt, with brown breeches; a
         /// violet wizard's robe with a gold belt; and a white wizard's robe.
         case waistcoat, wizardRobe, whiteRobe
+        /// Costume only, for the North Pole: a red suit with white fur and a black belt; a red
+        /// dress with a white collar and hem; an elf's green tunic with a zigzag collar over
+        /// striped tights; a snowman's white with coal buttons; a gingerbread biscuit iced and
+        /// studded with sweets; and a toy soldier's red coat with gold buttons.
+        case santaSuit, santaDress, elfTunic, snowSuit, gingerbread, soldierCoat
 
         /// The markings an agent can be given on an everyday theme (besides plain). Leaves out
         /// the costume-only ones, without changing anyone's existing pattern.
@@ -384,6 +400,36 @@ enum PixelArt {
             case .whiteRobe:
                 for row in 9...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "W") } }
                 for column in 0..<PixelArt.agentColumns { paint(11, column, "G") }
+            case .santaSuit:
+                for row in [9, 10, 12] { for column in 0..<PixelArt.agentColumns { paint(row, column, "R") } }
+                for row in 9...10 { paint(row, 5, "W"); paint(row, 6, "W") }
+                for column in 0..<PixelArt.agentColumns { paint(11, column, [5, 6].contains(column) ? "Y" : "K") }
+                for column in 0..<PixelArt.agentColumns { paint(13, column, "K") }
+            case .santaDress:
+                for row in 9...12 { for column in 0..<PixelArt.agentColumns { paint(row, column, "R") } }
+                for column in 4...7 { paint(9, column, "W") }
+                for column in 0..<PixelArt.agentColumns { paint(13, column, "W") }
+            case .elfTunic:
+                for column in 0..<PixelArt.agentColumns { paint(9, column, column % 2 == 0 ? "R" : "e") }
+                for column in 0..<PixelArt.agentColumns { paint(10, column, "e") }
+                for column in 0..<PixelArt.agentColumns { paint(11, column, [5, 6].contains(column) ? "Y" : "k") }
+                for column in 0..<PixelArt.agentColumns { paint(12, column, "R") }
+                for column in 0..<PixelArt.agentColumns { paint(13, column, "W") }
+            case .snowSuit:
+                for row in 9...13 { for column in 0..<PixelArt.agentColumns { paint(row, column, "W") } }
+                paint(9, 5, "K")
+                paint(11, 5, "K")
+            case .gingerbread:
+                for row in 9...12 { for column in 0..<PixelArt.agentColumns { paint(row, column, "O") } }
+                paint(9, 5, "R")
+                paint(10, 6, "e")
+                paint(11, 5, "R")
+                for column in 0..<PixelArt.agentColumns { paint(13, column, "W") }
+            case .soldierCoat:
+                for row in 9...10 { for column in 0..<PixelArt.agentColumns { paint(row, column, [4, 7].contains(column) ? "Y" : "R") } }
+                for column in 0..<PixelArt.agentColumns { paint(11, column, "W") }
+                for column in 0..<PixelArt.agentColumns { paint(12, column, "C") }
+                for column in 0..<PixelArt.agentColumns { paint(13, column, "K") }
             }
         }
     }
@@ -409,6 +455,9 @@ enum PixelArt {
         case blueBlade, greenBlade, redBlade, purpleBlade, sword, staff, wand, axe, donut
         /// A longbow, string and all; and a pink umbrella.
         case longbow, umbrella
+        /// For the North Pole: a sack of presents, a candy cane, a wrapped present, and the
+        /// list of who has been nice.
+        case giftSack, candyCane, present, niceList
 
         /// The map, top to bottom, and which row the hand holds.
         fileprivate var map: (rows: [String], grip: Int) {
@@ -433,6 +482,15 @@ enum PixelArt {
                 return (["..oW", ".o.W", "o..W", "o..W", "o..W", "o..W", ".o.W", "..oW"], 4)
             case .umbrella:
                 return (["..P..", ".PPP.", "PPPPP", "..o..", "..o..", "..o..", "..o..", ".oo.."], 5)
+            case .giftSack:
+                // Presents peeking out of the top, held by its tied neck.
+                return ([".e.R.", ".eRR.", "..k..", ".ooo.", "ooOoo", "ooooo", "ooooo", ".ooo."], 2)
+            case .candyCane:
+                return ([".RW.", "W..R", "R..W", "...R", "...W", "...R", "...W", "...R"], 5)
+            case .present:
+                return ([".R..R.", "..RR..", "eeRRee", "RRRRRR", "eeRRee", "eeRRee"], 4)
+            case .niceList:
+                return (["oEEEo", ".EEE.", ".KKE.", ".EEE.", ".KKK.", ".EEE.", ".KEK.", "oEEEo"], 4)
             }
         }
 
@@ -510,6 +568,7 @@ enum PixelArt {
         "j": (0.10, 0.09, 0.11),                             // black hair
         "x": (0.86, 0.40, 0.14),                             // ginger hair
         "y": (0.96, 0.86, 0.55),                             // fair hair
+        "e": (0.13, 0.55, 0.27),                             // Christmas green
     ]
 
     private static func paletteEntry(_ index: Int) -> (CGFloat, CGFloat, CGFloat) {

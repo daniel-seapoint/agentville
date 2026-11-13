@@ -78,6 +78,7 @@ struct TitleBarControls: View {
                     .pickerStyle(.inline)
                     .labelsHidden()
                 }
+                Section("Seasonal") { themePicker(Theme.seasonal, label: "Seasonal") }
                 if controller.theme.isMiddleEarth {
                     Section("Lord of the Rings") {
                         Picker("Lord of the Rings", selection: $controller.theme) {
@@ -215,7 +216,7 @@ struct AppIconPicker: View {
             Divider()
             let groups = VStack(alignment: .leading, spacing: 10) {
                 group(nil, title: "Agentville", choices)
-                ForEach(Theme.filmAndTV) { theme in group(theme, title: theme.menuLabel, choices) }
+                ForEach(Theme.costumed) { theme in group(theme, title: theme.menuLabel, choices) }
             }
             .padding(.bottom, 4)
             if scrolls { ScrollView { groups } } else { groups }

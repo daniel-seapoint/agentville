@@ -2,6 +2,7 @@
 
 Usage: make_gif.py <docs folder> <gif name> <clip folder> [<clip folder> ...]
 Each clip is a folder of numbered PNGs made with `Agentville --record`; they play in the order given.
+Set GIF_FRAMES to take more frames from each clip than the default eight, for a longer GIF.
 """
 import glob
 import os
@@ -13,7 +14,7 @@ WIDTH = 1600
 # The GIF is smaller: every other recorded frame, eight per clip.
 GIF_WIDTH = 800
 STEP = 2
-FRAMES_PER_CLIP = 8
+FRAMES_PER_CLIP = int(os.environ.get("GIF_FRAMES", "8"))
 
 
 def shrink(image, width=WIDTH):

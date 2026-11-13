@@ -43,7 +43,8 @@ enum AppIcon {
     static func writeGIF(to url: URL, side: Int = 256) {
         let ids = ["default", "starWars:vader", "simpsons:homer", "middleEarth:gandalf", "harryPotter:harry",
                    "starWars:luke", "simpsons:marge", "middleEarth:legolas", "harryPotter:hagrid",
-                   "starWars:chewbacca", "simpsons:bart", "middleEarth:gimli", "harryPotter:dumbledore"]
+                   "starWars:chewbacca", "simpsons:bart", "middleEarth:gimli", "harryPotter:dumbledore",
+                   "northPole:santa"]
         guard let destination = CGImageDestinationCreateWithURL(url as CFURL, "com.compuserve.gif" as CFString,
                                                                 ids.count, nil) else { return }
         CGImageDestinationSetProperties(destination, [
@@ -96,12 +97,12 @@ enum AppIcon {
     static let classic = PixelArt.Look(hat: .crown)
 
     /// The characters a user can pick for the app icon: the default crowned agent, then every
-    /// named character, each with the film or TV theme it comes from.
+    /// named character, each with the film, TV or seasonal theme it comes from.
     static var choices: [(id: String, name: String, theme: Theme?, look: PixelArt.Look)] {
         var all: [(String, String, Theme?, PixelArt.Look)] = [
             ("default", "Crown (default)", nil, classic),
         ]
-        for theme in Theme.filmAndTV {
+        for theme in Theme.costumed {
             guard let key = Cast.key(for: theme) else { continue }
             all += Cast.main(key).map { ("\(key):\($0.id)", $0.name, theme, $0.look) }
         }

@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/icon.gif" width="128" alt="The Agentville icon, dressed as characters from Star Wars, The Simpsons, Lord of the Rings and Harry Potter"></p>
+<p align="center"><img src="docs/icon.gif" width="128" alt="The Agentville icon, dressed as characters from Star Wars, The Simpsons, Lord of the Rings, Harry Potter and Santa Claude"></p>
 
 <p align="center"><img src="docs/providers.png" width="268" alt="Claude, Codex and Copilot"></p>
 
@@ -11,9 +11,18 @@ A Mac app that turns every running session into a little cartoon agent.
 
 ![Agents moving between the Plan, Research, Build, Verify, Review and Ship stations](docs/working.gif)
 
-<p align="center">Dress the floor up in thirteen themes and draw the agents in four styles.</p>
+<p align="center">Dress the floor up in fourteen themes and draw the agents in four styles.</p>
 
 ![The floor cycling through the themes](docs/themes.gif)
+
+### 🎅 New for Christmas: Santa Claude
+
+The workshop moves to the North Pole. Agents are cast as Santa Claude, Mrs Claude, the elves,
+the reindeer, a snowman, a gingerbread biscuit and a nutcracker; the northern lights ripple
+overhead, fairy lights twinkle between the stations, snow falls, and every so often the sleigh
+flies past. Pick it under **Seasonal** in the theme menu.
+
+![Santa Claude: agents at the North Pole as the sleigh flies over](docs/santaClaude.gif)
 
 ## What you get
 
@@ -29,7 +38,7 @@ A Mac app that turns every running session into a little cartoon agent.
 
 ![The empty workshop](docs/empty.gif)
 
-**Themes** — thirteen looks for the floor, from the theme button in the title bar: Workshop,
+**Themes** — fourteen looks for the floor, from the theme button in the title bar: Workshop,
 Daylight, Forest, Ocean, Space, Sunset, Terminal and Winter, plus fan tributes to The Simpsons,
 Star Wars, Lord of the Rings and Harry Potter. Lord of the Rings has two scenes, Mordor and the
 Shire, picked in a section of their own once it is chosen. Each has its own colours and a little
@@ -37,8 +46,12 @@ ambience: fireflies in the forest, bubbles in the ocean, stars, embers, snow, CR
 cartoon clouds over a sunny suburb, a jump to lightspeed, ash and embers over a volcanic
 wasteland watched by a fiery eye, butterflies over green hills with round-doored hill houses for
 a lounge, and a great hall with an enchanted starry ceiling, glowing arched windows, house
-banners, a passing owl and floating candles, whose stations light up in four banner colours. The tributes are listed on their own, under Film & TV. Picking one dresses the
-agents in costume; going back to an everyday theme puts your style back.
+banners, a passing owl and floating candles, whose stations light up in four banner colours. The tributes are listed on their own, under Film & TV. For the holidays there is
+**Santa Claude**, under Seasonal: a snowy night at the North Pole with the northern lights,
+fir trees on the drifts, fairy lights strung between the stations, a sleigh and reindeer
+flying past, and a fireplace hung with stockings and a tree piled with presents in the lounge,
+whose stations light up in Christmas red and green. Picking a film, TV or seasonal theme dresses
+the agents in costume; going back to an everyday theme puts your style back.
 
 <table>
 <tr>
@@ -67,12 +80,12 @@ agents in costume; going back to an everyday theme puts your style back.
 </tr>
 <tr>
 <td><img src="docs/themes/harryPotter.png" alt="Harry Potter theme"><p align="center">Harry Potter</p></td>
-<td></td>
+<td><img src="docs/themes/santaClaude.png" alt="Santa Claude theme, at the North Pole"><p align="center">Santa Claude</p></td>
 </tr>
 </table>
 
 **Agent styles** — every theme can draw the agents smooth or as pixel art, from the same menu.
-The everyday themes add yellow-skinned sitcom toons. The Simpsons starts in Toon, and its agents
+The everyday themes and Santa Claude add yellow-skinned sitcom toons. The Simpsons starts in Toon, and its agents
 stay yellow in Smooth and Pixel too. Star Wars adds flickering blue holograms.
 
 ![The agents cycling through the styles](docs/styles.gif)
@@ -88,11 +101,11 @@ stay yellow in Smooth and Pixel too. Star Wars adds flickering blue holograms.
 </tr>
 </table>
 
-**App icon** — dress the app's own icon as your favourite character with the **App Icon** button
-in the title bar. It previews every character; pick one and choose **Use as App Icon**. The Dock
+**App icon** — dress the app's own icon as your favourite character, Santa Claude included, with
+the **App Icon** button in the title bar. It previews every character; pick one and choose **Use as App Icon**. The Dock
 and Finder both show it; pick **Crown (default)** to go back.
 
-**Characters** — on the film and TV themes, agents are cast as the characters from that world.
+**Characters** — on the film, TV and seasonal themes, agents are cast as the characters from that world.
 Each character is played by one agent at a time, so there is only ever one wizard; agents only
 play extras once every character is taken. Star characters under **Favourite characters** in the
 theme menu and they are shown first. Click an agent to see who it is playing.
@@ -112,6 +125,11 @@ theme menu and they are shown first. Click an agent to see who it is playing.
 **Harry Potter** — extras play pupils in school robes.
 
 ![Dumbledore, Harry, Ron, Hermione, Hagrid, Snape, Neville, Luna and Draco](docs/cast/cast-harryPotter.png)
+
+**Santa Claude** — Santa Claude carries the sack of presents and the Head Elf keeps the nice
+list. Extras play elves and reindeer.
+
+![Santa Claude, Mrs Claude, the Head Elf, the Toymaker, Dasher, Blitzen, the Snowman, Gingerbread and the Nutcracker](docs/cast/cast-northPole.png)
 
 **Wardrobe** — every agent gets its own look, kept for as long as the session lives: one of 35
 hats, hairstyles and helmets, glasses, a mustache or a beard, something round its neck, a

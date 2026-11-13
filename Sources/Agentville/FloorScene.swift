@@ -349,6 +349,7 @@ final class FloorScene: SKScene {
         place(.lamp, x: size.width / 2 - 62)
         place(.plant, x: size.width / 2 + 62)
         if Theme.current == .shire { buildHillHouses() }
+        if Theme.current == .santaClaude { buildChristmasLounge() }
     }
 
     /// The Shire's lounge: a grassy hill along its back, dug into with round-doored houses with
@@ -1281,23 +1282,7 @@ final class FloorScene: SKScene {
                 ]))
             }
         case .snow:
-            // Snow falling at different speeds, drifting a little sideways.
-            for _ in 0..<Int(area / 4500) {
-                let flake = dot(0.8 + random.unit() * 1.6, NSColor(white: 1, alpha: 0.35 + random.unit() * 0.45))
-                let x = frame.minX + random.unit() * frame.width
-                let y = frame.minY + random.unit() * frame.height
-                flake.position = CGPoint(x: x, y: y)
-                let speed = 14 + random.unit() * 22
-                let first = Double((y - frame.minY) / speed)
-                let full = Double(frame.height / speed)
-                let sway = SKAction.sequence([.moveBy(x: 7, y: 0, duration: 1.6), .moveBy(x: -7, y: 0, duration: 1.6)])
-                sway.timingMode = .easeInEaseOut
-                flake.run(.repeatForever(sway))
-                flake.run(.sequence([
-                    .moveTo(y: frame.minY, duration: first),
-                    .repeatForever(.sequence([.moveTo(y: frame.maxY, duration: 0), .moveTo(y: frame.minY, duration: full)])),
-                ]))
-            }
+            addSnowfall(in: frame, areaPerFlake: 4500, random: &random)
         case .clouds:
             // Fat cartoon clouds, white with a dark outline, drifting slowly across the sky.
             let cloudCount = max(3, Int(frame.width / 220))
@@ -1414,6 +1399,8 @@ final class FloorScene: SKScene {
             fillShire(in: frame, random: &random)
         case .greatHall:
             fillGreatHall(in: frame, random: &random)
+        case .northPole:
+            fillNorthPole(in: frame, random: &random)
         case .candles:
             // Candles hanging in the air above the floor, each bobbing gently, flames flickering.
             for _ in 0..<Int(frame.width / 55) {
@@ -1521,5 +1508,570 @@ private final class StationNode: SKNode {
         icon.alpha = isActive ? 1 : 0.4
         nameLabel.attributedText = .label(stage.title, size: 10, weight: .medium,
                                           color: (colors.stationInk ?? colors.ink).withAlphaComponent(isActive ? 0.95 : 0.45))
+    }
+}
+
+// MARK: The North Pole
+
+extension FloorScene {
+    private enum Yuletide {
+        static let snow = NSColor(srgbRed: 0.93, green: 0.96, blue: 1, alpha: 1)
+        static let snowShade = NSColor(srgbRed: 0.70, green: 0.80, blue: 0.94, alpha: 1)
+        static let fir = NSColor(srgbRed: 0.07, green: 0.32, blue: 0.19, alpha: 1)
+        static let firShade = NSColor(srgbRed: 0.03, green: 0.19, blue: 0.11, alpha: 1)
+        static let bark = NSColor(srgbRed: 0.32, green: 0.19, blue: 0.10, alpha: 1)
+        static let gold = NSColor(srgbRed: 1, green: 0.84, blue: 0.34, alpha: 1)
+        static let red = NSColor(srgbRed: 0.80, green: 0.14, blue: 0.16, alpha: 1)
+        static let green = NSColor(srgbRed: 0.13, green: 0.55, blue: 0.27, alpha: 1)
+        /// Fairy-light colours, taken in turn along a string.
+        static let bulbs: [NSColor] = [
+            NSColor(srgbRed: 1, green: 0.32, blue: 0.30, alpha: 1),
+            NSColor(srgbRed: 1, green: 0.84, blue: 0.32, alpha: 1),
+            NSColor(srgbRed: 0.38, green: 0.88, blue: 0.48, alpha: 1),
+            NSColor(srgbRed: 0.42, green: 0.72, blue: 1, alpha: 1),
+        ]
+    }
+
+    private func shape(_ path: CGPath, fill: NSColor, stroke: NSColor = .clear, width: CGFloat = 1) -> SKShapeNode {
+        let node = SKShapeNode(path: path)
+        node.fillColor = fill
+        node.strokeColor = stroke
+        node.lineWidth = width
+        return node
+    }
+
+    /// A five-pointed star of `radius`, point up, centred on the origin.
+    private func starPath(radius: CGFloat) -> CGPath {
+        let path = CGMutablePath()
+        for index in 0..<10 {
+            let reach = index.isMultiple(of: 2) ? radius : radius * 0.45
+            let angle = Double.pi / 2 + Double(index) * Double.pi / 5
+            let point = CGPoint(x: CGFloat(cos(angle)) * reach, y: CGFloat(sin(angle)) * reach)
+            if index == 0 { path.move(to: point) } else { path.addLine(to: point) }
+        }
+        path.closeSubpath()
+        return path
+    }
+
+    /// One fairy light, twinkling at its own pace.
+    private func bulb(_ color: NSColor, radius: CGFloat, random: inout StableRandom) -> SKShapeNode {
+        let light = SKShapeNode(circleOfRadius: radius)
+        light.fillColor = color
+        light.strokeColor = .clear
+        let halo = SKShapeNode(circleOfRadius: radius * 2.6)
+        halo.fillColor = color.withAlphaComponent(0.18)
+        halo.strokeColor = .clear
+        light.addChild(halo)
+        let pace = 0.5 + Double(random.unit()) * 0.9
+        light.run(.sequence([
+            .wait(forDuration: Double(random.unit()) * 1.2),
+            .repeatForever(.sequence([.fadeAlpha(to: 0.35, duration: pace), .fadeAlpha(to: 1, duration: pace)])),
+        ]))
+        return light
+    }
+
+    /// A fir tree `height` tall standing on its origin: three tiers of boughs with snow along
+    /// their edges and on the tip. A decorated one has fairy lights, baubles and a gold star.
+    private func firTree(height: CGFloat, decorated: Bool, random: inout StableRandom) -> SKNode {
+        let tree = SKNode()
+        let width = height * 0.62
+        let trunk = SKShapeNode(rect: CGRect(x: -width * 0.07, y: 0, width: width * 0.14, height: height * 0.16))
+        trunk.fillColor = Yuletide.bark
+        trunk.strokeColor = .clear
+        tree.addChild(trunk)
+        var tiers: [(bottom: CGFloat, top: CGFloat, half: CGFloat)] = []
+        for tier in 0..<3 {
+            let step = CGFloat(tier)
+            let bottom = height * (0.12 + step * 0.24)
+            let top = min(height, bottom + height * 0.42)
+            let half = width / 2 * (1 - step * 0.24)
+            tiers.append((bottom, top, half))
+            let boughs = CGMutablePath()
+            boughs.addLines(between: [CGPoint(x: -half, y: bottom), CGPoint(x: half, y: bottom), CGPoint(x: 0, y: top)])
+            boughs.closeSubpath()
+            tree.addChild(shape(boughs, fill: Yuletide.fir, stroke: Yuletide.firShade))
+            // Snow lying along the lower edge of the boughs.
+            let ledge = CGMutablePath()
+            ledge.addRoundedRect(in: CGRect(x: -half * 0.86, y: bottom - 0.5, width: half * 1.72, height: max(1.5, height * 0.03)),
+                                 cornerWidth: 1, cornerHeight: 1)
+            tree.addChild(shape(ledge, fill: Yuletide.snow.withAlphaComponent(0.9)))
+        }
+        let cap = CGMutablePath()
+        cap.addLines(between: [CGPoint(x: 0, y: height), CGPoint(x: -width * 0.09, y: height * 0.86),
+                               CGPoint(x: width * 0.09, y: height * 0.86)])
+        cap.closeSubpath()
+        tree.addChild(shape(cap, fill: Yuletide.snow))
+        guard decorated else { return tree }
+
+        // Baubles hanging on the boughs, and fairy lights twinkling among them.
+        let baubles = [Yuletide.red, Yuletide.gold, NSColor(srgbRed: 0.35, green: 0.55, blue: 0.95, alpha: 1)]
+        for (index, tier) in tiers.enumerated() {
+            let count = max(2, Int(tier.half / 5))
+            for item in 0..<count {
+                let rise = 0.12 + random.unit() * 0.55
+                let y = tier.bottom + (tier.top - tier.bottom) * rise
+                let reach = tier.half * (1 - rise) * 0.8
+                let x = (random.unit() * 2 - 1) * reach
+                if item.isMultiple(of: 3) {
+                    let bauble = SKShapeNode(circleOfRadius: max(1.6, height * 0.022))
+                    bauble.fillColor = baubles[(index + item) % baubles.count]
+                    bauble.strokeColor = .clear
+                    bauble.position = CGPoint(x: x, y: y)
+                    tree.addChild(bauble)
+                } else {
+                    let light = bulb(Yuletide.bulbs[(index + item) % Yuletide.bulbs.count],
+                                     radius: max(1, height * 0.012), random: &random)
+                    light.position = CGPoint(x: x, y: y)
+                    tree.addChild(light)
+                }
+            }
+        }
+        // A gold star on the top, glowing softly.
+        let glow = SKShapeNode(circleOfRadius: height * 0.09)
+        glow.fillColor = Yuletide.gold.withAlphaComponent(0.22)
+        glow.strokeColor = .clear
+        glow.position = CGPoint(x: 0, y: height + 2)
+        tree.addChild(glow)
+        glow.run(.repeatForever(.sequence([.fadeAlpha(to: 0.4, duration: 1.2), .fadeAlpha(to: 1, duration: 1.2)])))
+        let star = shape(starPath(radius: max(4, height * 0.06)), fill: Yuletide.gold)
+        star.position = CGPoint(x: 0, y: height + 2)
+        tree.addChild(star)
+        return tree
+    }
+
+    /// Snow falling at different speeds, drifting a little sideways. One flake for every
+    /// `areaPerFlake` square points of `frame`.
+    func addSnowfall(in frame: CGRect, areaPerFlake: CGFloat, random: inout StableRandom) {
+        for _ in 0..<Int(frame.width * frame.height / areaPerFlake) {
+            let flake = SKShapeNode(circleOfRadius: 0.8 + random.unit() * 1.6)
+            flake.fillColor = NSColor(white: 1, alpha: 0.35 + random.unit() * 0.45)
+            flake.strokeColor = .clear
+            ambience.addChild(flake)
+            let x = frame.minX + random.unit() * frame.width
+            let y = frame.minY + random.unit() * frame.height
+            flake.position = CGPoint(x: x, y: y)
+            let speed = 14 + random.unit() * 22
+            let first = Double((y - frame.minY) / speed)
+            let full = Double(frame.height / speed)
+            let sway = SKAction.sequence([.moveBy(x: 7, y: 0, duration: 1.6), .moveBy(x: -7, y: 0, duration: 1.6)])
+            sway.timingMode = .easeInEaseOut
+            flake.run(.repeatForever(sway))
+            flake.run(.sequence([
+                .moveTo(y: frame.minY, duration: first),
+                .repeatForever(.sequence([.moveTo(y: frame.maxY, duration: 0), .moveTo(y: frame.minY, duration: full)])),
+            ]))
+        }
+    }
+
+    /// The North Pole at night: the northern lights rippling over a starry sky, snowy drifts
+    /// along the lounge's roof line dotted with fir trees, a big decorated tree at either end,
+    /// fairy lights strung between the stations, snow falling over everything, and Santa
+    /// Claude's sleigh flying across now and then.
+    func fillNorthPole(in frame: CGRect, random: inout StableRandom) {
+        let ground = Metrics.loungeTop + 2
+        let stationTop = size.height - Metrics.stationY + 28
+
+        // Stars over the whole sky, twinkling.
+        if frame.maxY > ground {
+            for _ in 0..<Int(frame.width * (frame.maxY - ground) / 3200) {
+                let star = SKShapeNode(circleOfRadius: 0.5 + random.unit() * 1.0)
+                star.fillColor = .white
+                star.strokeColor = .clear
+                star.position = CGPoint(x: frame.minX + random.unit() * frame.width,
+                                        y: ground + random.unit() * (frame.maxY - ground))
+                star.alpha = 0.2 + random.unit() * 0.6
+                let pace = 1.2 + Double(random.unit()) * 2.4
+                star.run(.repeatForever(.sequence([.fadeAlpha(to: 0.08, duration: pace),
+                                                   .fadeAlpha(to: star.alpha, duration: pace)])))
+                star.name = Self.fixedDecor
+                ambience.addChild(star)
+            }
+        }
+
+        // The northern lights: three ribbons of green, teal and violet rippling across the top
+        // of the sky, each brightening and fading, and swaying slowly.
+        let auroras: [NSColor] = [
+            NSColor(srgbRed: 0.30, green: 1, blue: 0.62, alpha: 1),
+            NSColor(srgbRed: 0.30, green: 0.86, blue: 1, alpha: 1),
+            NSColor(srgbRed: 0.72, green: 0.48, blue: 1, alpha: 1),
+        ]
+        for (index, color) in auroras.enumerated() {
+            let baseY = frame.maxY - 64 - CGFloat(index) * 34
+            let phase = Double(random.unit()) * Double.pi * 2
+            let waves = 1.2 + Double(random.unit())
+            let steps = 32
+            var crest: [CGPoint] = []
+            for step in 0...steps {
+                let share = CGFloat(step) / CGFloat(steps)
+                let x = frame.minX - 40 + (frame.width + 80) * share
+                let rise = CGFloat(sin(Double(share) * Double.pi * 2 * waves + phase)) * 16
+                crest.append(CGPoint(x: x, y: baseY + rise))
+            }
+            let ribbon = SKNode()
+            // A faint curtain hanging below a brighter crest.
+            for (depth, alpha) in [(CGFloat(34), CGFloat(0.05)), (CGFloat(20), CGFloat(0.07)), (CGFloat(9), CGFloat(0.10))] {
+                let curtain = CGMutablePath()
+                curtain.addLines(between: crest + crest.reversed().map { CGPoint(x: $0.x, y: $0.y - depth) })
+                curtain.closeSubpath()
+                ribbon.addChild(shape(curtain, fill: color.withAlphaComponent(alpha)))
+            }
+            let line = CGMutablePath()
+            line.addLines(between: crest)
+            let glow = shape(line, fill: .clear, stroke: color.withAlphaComponent(0.35), width: 2)
+            ribbon.addChild(glow)
+            ambience.addChild(ribbon)
+            let pace = 2.5 + Double(random.unit()) * 2
+            ribbon.alpha = 0.8
+            ribbon.run(.repeatForever(.sequence([.fadeAlpha(to: 0.3, duration: pace), .fadeAlpha(to: 1, duration: pace)])))
+            let sway = SKAction.sequence([.moveBy(x: 26, y: 0, duration: 5 + Double(index)),
+                                          .moveBy(x: -26, y: 0, duration: 5 + Double(index))])
+            sway.timingMode = .easeInEaseOut
+            ribbon.run(.repeatForever(sway))
+        }
+
+        // Snowy drifts along the lounge's roof line, rolling in low humps.
+        let drifts = CGMutablePath()
+        drifts.move(to: CGPoint(x: frame.minX, y: ground - 4))
+        var x = frame.minX
+        drifts.addLine(to: CGPoint(x: x, y: ground + 6))
+        while x < frame.maxX {
+            let span = 90 + random.unit() * 110
+            let next = min(frame.maxX, x + span)
+            drifts.addQuadCurve(to: CGPoint(x: next, y: ground + 4 + random.unit() * 6),
+                                control: CGPoint(x: (x + next) / 2, y: ground + 16 + random.unit() * 22))
+            x = next
+        }
+        drifts.addLine(to: CGPoint(x: frame.maxX, y: ground - 4))
+        drifts.closeSubpath()
+        ambience.addChild(shape(drifts, fill: Yuletide.snow.withAlphaComponent(0.92), stroke: Yuletide.snowShade, width: 1.5))
+
+        // A big decorated tree at either end, and smaller firs scattered along the drifts
+        // between them.
+        let bigLeft = frame.minX + 54
+        let bigRight = frame.maxX - 54
+        for (at, height) in [(bigLeft, CGFloat(150)), (bigRight, CGFloat(124))] {
+            let tree = firTree(height: height, decorated: true, random: &random)
+            tree.position = CGPoint(x: at, y: ground + 6)
+            ambience.addChild(tree)
+        }
+        let firs = max(3, Int(frame.width / 110))
+        for index in 0..<firs {
+            let share = (CGFloat(index) + 0.5 + (random.unit() - 0.5) * 0.6) / CGFloat(firs)
+            let at = frame.minX + 120 + (frame.width - 240) * share
+            let tree = firTree(height: 28 + random.unit() * 34, decorated: false, random: &random)
+            tree.position = CGPoint(x: at, y: ground + 8 + random.unit() * 6)
+            tree.alpha = 0.85
+            ambience.addChild(tree)
+        }
+
+        // Fairy lights strung between the tops of the station tiles, sagging in the middle.
+        let stages = Stage.allCases
+        for index in 0..<(stages.count - 1) {
+            let from = CGPoint(x: stationX(stages[index]) + 40, y: stationTop - 5)
+            let to = CGPoint(x: stationX(stages[index + 1]) - 40, y: stationTop - 5)
+            guard to.x - from.x > 24 else { continue }
+            let sag = CGPoint(x: (from.x + to.x) / 2, y: stationTop - 5 - min(34, (to.x - from.x) * 0.4))
+            let wire = CGMutablePath()
+            wire.move(to: from)
+            wire.addQuadCurve(to: to, control: sag)
+            ambience.addChild(shape(wire, fill: .clear, stroke: Yuletide.firShade.blended(withFraction: 0.3, of: .white) ?? Yuletide.firShade,
+                                    width: 1.2))
+            let count = max(3, Int((to.x - from.x) / 11))
+            for bead in 1..<count {
+                let t = CGFloat(bead) / CGFloat(count)
+                let point = CGPoint(x: (1 - t) * (1 - t) * from.x + 2 * (1 - t) * t * sag.x + t * t * to.x,
+                                    y: (1 - t) * (1 - t) * from.y + 2 * (1 - t) * t * sag.y + t * t * to.y)
+                let light = bulb(Yuletide.bulbs[(bead + index) % Yuletide.bulbs.count], radius: 2.2, random: &random)
+                light.position = CGPoint(x: point.x, y: point.y - 2.5)
+                ambience.addChild(light)
+            }
+        }
+
+        addSnowfall(in: frame, areaPerFlake: 5200, random: &random)
+        addSleigh(in: frame, flightY: min(frame.maxY - 125, ground + 214))
+    }
+
+    /// Santa Claude's sleigh, piled with presents and pulled by four reindeer, flying across
+    /// the sky every so often and leaving a trail of sparkles.
+    private func addSleigh(in frame: CGRect, flightY: CGFloat) {
+        let team = SKNode()
+        let fur = NSColor(srgbRed: 0.52, green: 0.33, blue: 0.18, alpha: 1)
+        let antler = NSColor(srgbRed: 0.86, green: 0.76, blue: 0.58, alpha: 1)
+
+        // The sleigh: a red body with gold trim on a curling gold runner.
+        let runner = CGMutablePath()
+        runner.move(to: CGPoint(x: -20, y: -1))
+        runner.addLine(to: CGPoint(x: 10, y: -1))
+        runner.addQuadCurve(to: CGPoint(x: 14, y: 8), control: CGPoint(x: 18, y: -2))
+        team.addChild(shape(runner, fill: .clear, stroke: Yuletide.gold, width: 1.6))
+        let body = CGMutablePath()
+        body.move(to: CGPoint(x: -18, y: 2))
+        body.addLine(to: CGPoint(x: 8, y: 2))
+        body.addQuadCurve(to: CGPoint(x: 11, y: 11), control: CGPoint(x: 13, y: 4))
+        body.addLine(to: CGPoint(x: 2, y: 9))
+        body.addLine(to: CGPoint(x: -14, y: 9))
+        body.addQuadCurve(to: CGPoint(x: -18, y: 2), control: CGPoint(x: -20, y: 9))
+        body.closeSubpath()
+        team.addChild(shape(body, fill: Yuletide.red, stroke: Yuletide.gold, width: 1))
+        // The sack of presents behind, and Santa Claude in his red coat and hat.
+        let sack = SKShapeNode(ellipseOf: CGSize(width: 10, height: 11))
+        sack.fillColor = NSColor(srgbRed: 0.55, green: 0.38, blue: 0.22, alpha: 1)
+        sack.strokeColor = .clear
+        sack.position = CGPoint(x: -12, y: 13)
+        team.addChild(sack)
+        let coat = SKShapeNode(ellipseOf: CGSize(width: 9, height: 10))
+        coat.fillColor = Yuletide.red
+        coat.strokeColor = .clear
+        coat.position = CGPoint(x: -2, y: 13)
+        team.addChild(coat)
+        let face = SKShapeNode(circleOfRadius: 2.8)
+        face.fillColor = NSColor(srgbRed: 1, green: 0.84, blue: 0.72, alpha: 1)
+        face.strokeColor = .clear
+        face.position = CGPoint(x: -1, y: 20)
+        team.addChild(face)
+        let beard = SKShapeNode(ellipseOf: CGSize(width: 5, height: 4))
+        beard.fillColor = Yuletide.snow
+        beard.strokeColor = .clear
+        beard.position = CGPoint(x: 0, y: 17.5)
+        team.addChild(beard)
+        let hat = CGMutablePath()
+        hat.addLines(between: [CGPoint(x: -4, y: 21.5), CGPoint(x: 2, y: 21.5), CGPoint(x: -5, y: 27)])
+        hat.closeSubpath()
+        team.addChild(shape(hat, fill: Yuletide.red))
+        let bobble = SKShapeNode(circleOfRadius: 1.2)
+        bobble.fillColor = Yuletide.snow
+        bobble.strokeColor = .clear
+        bobble.position = CGPoint(x: -5, y: 27)
+        team.addChild(bobble)
+
+        // The reindeer, in a line ahead, each on the harness with its legs galloping.
+        let reins = CGMutablePath()
+        reins.move(to: CGPoint(x: 11, y: 10))
+        reins.addLine(to: CGPoint(x: 92, y: 12))
+        team.addChild(shape(reins, fill: .clear, stroke: Yuletide.gold.withAlphaComponent(0.8), width: 0.8))
+        for index in 0..<4 {
+            let deer = SKNode()
+            deer.position = CGPoint(x: 28 + CGFloat(index) * 19, y: 6)
+            for (leg, front) in [(-4, false), (-2, false), (3, true), (5, true)] {
+                let limb = SKShapeNode(rect: CGRect(x: -0.7, y: -6, width: 1.4, height: 6))
+                limb.fillColor = fur.blended(withFraction: 0.3, of: .black) ?? fur
+                limb.strokeColor = .clear
+                limb.position = CGPoint(x: CGFloat(leg), y: 1)
+                let reach: CGFloat = front ? 0.6 : -0.6
+                limb.run(.repeatForever(.sequence([.rotate(toAngle: reach, duration: 0.18),
+                                                   .rotate(toAngle: -reach, duration: 0.18)])))
+                deer.addChild(limb)
+            }
+            let torso = SKShapeNode(ellipseOf: CGSize(width: 13, height: 6))
+            torso.fillColor = fur
+            torso.strokeColor = .clear
+            torso.position = CGPoint(x: 0, y: 2)
+            deer.addChild(torso)
+            let neck = SKShapeNode(rect: CGRect(x: 4, y: 2, width: 2.4, height: 6), cornerRadius: 1)
+            neck.fillColor = fur
+            neck.strokeColor = .clear
+            neck.zRotation = -0.4
+            deer.addChild(neck)
+            let head = SKShapeNode(ellipseOf: CGSize(width: 5, height: 3.6))
+            head.fillColor = fur
+            head.strokeColor = .clear
+            head.position = CGPoint(x: 8.5, y: 8)
+            deer.addChild(head)
+            let antlers = CGMutablePath()
+            antlers.move(to: CGPoint(x: 7.5, y: 9.5))
+            antlers.addLine(to: CGPoint(x: 6, y: 14))
+            antlers.move(to: CGPoint(x: 6.6, y: 12))
+            antlers.addLine(to: CGPoint(x: 4.5, y: 13))
+            antlers.move(to: CGPoint(x: 9, y: 9.5))
+            antlers.addLine(to: CGPoint(x: 9.5, y: 14))
+            deer.addChild(shape(antlers, fill: .clear, stroke: antler, width: 1))
+            // Each bobs a little out of step with the one in front.
+            let bob = SKAction.sequence([.moveBy(x: 0, y: 1.5, duration: 0.36), .moveBy(x: 0, y: -1.5, duration: 0.36)])
+            deer.run(.sequence([.wait(forDuration: Double(index) * 0.09), .repeatForever(bob)]))
+            team.addChild(deer)
+        }
+
+        team.alpha = 0
+        team.position = CGPoint(x: frame.minX - 120, y: flightY)
+        ambience.addChild(team)
+        // About ten seconds to cross, taking off ten seconds after the floor is drawn and then
+        // every twenty or so, so it is over the middle of the floor at around sixteen seconds.
+        let crossing = Double(frame.width + 240) / 120
+        team.run(.sequence([
+            .wait(forDuration: 10),
+            .repeatForever(.sequence([
+                .move(to: CGPoint(x: frame.minX - 120, y: flightY), duration: 0),
+                .fadeIn(withDuration: 0.3),
+                .group([
+                    .moveBy(x: frame.width + 240, y: 26, duration: crossing),
+                    .sequence([.moveBy(x: 0, y: 8, duration: crossing / 4), .moveBy(x: 0, y: -8, duration: crossing / 4),
+                               .moveBy(x: 0, y: 8, duration: crossing / 4), .moveBy(x: 0, y: -8, duration: crossing / 4)]),
+                ]),
+                .fadeOut(withDuration: 0.3),
+                .wait(forDuration: 10),
+            ])),
+        ]))
+
+        // Sparkles shed behind the sleigh, fading as they fall.
+        let sparkle = SKAction.run { [weak self, weak team] in
+            guard let self, let team, team.alpha > 0.5 else { return }
+            let spark = SKShapeNode(circleOfRadius: 1 + CGFloat.random(in: 0...0.8))
+            spark.fillColor = Yuletide.bulbs[Int.random(in: 0..<Yuletide.bulbs.count)].blended(withFraction: 0.5, of: .white) ?? .white
+            spark.strokeColor = .clear
+            spark.position = CGPoint(x: team.position.x - 22, y: team.position.y + CGFloat.random(in: -2...6))
+            self.ambience.addChild(spark)
+            spark.run(.sequence([
+                .group([.moveBy(x: CGFloat.random(in: -6...6), y: -18, duration: 1.2), .fadeOut(withDuration: 1.2)]),
+                .removeFromParent(),
+            ]))
+        }
+        team.run(.repeatForever(.sequence([sparkle, .wait(forDuration: 0.08)])))
+    }
+
+    /// The lounge at Christmas: a brick fireplace with a crackling fire and stockings hung from
+    /// the mantel in the gap left of the middle couch, and a decorated tree with presents piled
+    /// under it in the gap to the right. Behind the furniture and the agents.
+    func buildChristmasLounge() {
+        let decor = SKNode()
+        decor.zPosition = -0.5
+        furniture.addChild(decor)
+        var random = StableRandom(seed: "christmas-\(size)")
+        let floor = Metrics.loungeSeatY - AgentNode.feet
+        let left = loungeCouches[0].x + 30
+        let right = size.width / 2 - 72
+        guard right - left > 86 else { return }
+        let fireX = (left + right) / 2
+        let treeX = size.width - fireX
+
+        // The fireplace: brick, with a dark wooden mantel and an arched firebox.
+        let brick = NSColor(srgbRed: 0.62, green: 0.26, blue: 0.20, alpha: 1)
+        let mortar = NSColor(srgbRed: 0.42, green: 0.17, blue: 0.14, alpha: 1)
+        let wood = NSColor(srgbRed: 0.36, green: 0.22, blue: 0.12, alpha: 1)
+        let width: CGFloat = 84
+        let height: CGFloat = 66
+        let chimney = SKShapeNode(rect: CGRect(x: fireX - width / 2, y: floor, width: width, height: height))
+        chimney.fillColor = brick
+        chimney.strokeColor = mortar
+        chimney.lineWidth = 1.5
+        decor.addChild(chimney)
+        let courses = CGMutablePath()
+        var row = 0
+        var y = floor + 8
+        while y < floor + height - 2 {
+            courses.move(to: CGPoint(x: fireX - width / 2, y: y))
+            courses.addLine(to: CGPoint(x: fireX + width / 2, y: y))
+            var joint = fireX - width / 2 + (row.isMultiple(of: 2) ? 7 : 14)
+            while joint < fireX + width / 2 {
+                courses.move(to: CGPoint(x: joint, y: y))
+                courses.addLine(to: CGPoint(x: joint, y: y + 8))
+                joint += 14
+            }
+            y += 8
+            row += 1
+        }
+        decor.addChild(shape(courses, fill: .clear, stroke: mortar, width: 1))
+        let opening = CGMutablePath()
+        opening.move(to: CGPoint(x: fireX - 22, y: floor))
+        opening.addLine(to: CGPoint(x: fireX - 22, y: floor + 24))
+        opening.addArc(center: CGPoint(x: fireX, y: floor + 24), radius: 22, startAngle: .pi, endAngle: 0, clockwise: true)
+        opening.addLine(to: CGPoint(x: fireX + 22, y: floor))
+        opening.closeSubpath()
+        decor.addChild(shape(opening, fill: NSColor(srgbRed: 0.08, green: 0.04, blue: 0.03, alpha: 1), stroke: mortar, width: 2))
+        // The fire: a warm glow, two logs and flames licking up and flickering.
+        let glow = SKShapeNode(ellipseOf: CGSize(width: 40, height: 30))
+        glow.fillColor = NSColor(srgbRed: 1, green: 0.55, blue: 0.15, alpha: 0.25)
+        glow.strokeColor = .clear
+        glow.position = CGPoint(x: fireX, y: floor + 12)
+        decor.addChild(glow)
+        glow.run(.repeatForever(.sequence([.fadeAlpha(to: 0.55, duration: 0.5), .fadeAlpha(to: 1, duration: 0.6)])))
+        for (offset, tilt) in [(CGFloat(-5), CGFloat(0.25)), (CGFloat(5), CGFloat(-0.25))] {
+            let log = SKShapeNode(rectOf: CGSize(width: 22, height: 5), cornerRadius: 2.5)
+            log.fillColor = wood
+            log.strokeColor = .clear
+            log.position = CGPoint(x: fireX + offset, y: floor + 4)
+            log.zRotation = tilt
+            decor.addChild(log)
+        }
+        let flames: [(CGFloat, CGFloat, NSColor)] = [
+            (-7, 15, NSColor(srgbRed: 1, green: 0.42, blue: 0.10, alpha: 1)),
+            (6, 17, NSColor(srgbRed: 1, green: 0.42, blue: 0.10, alpha: 1)),
+            (0, 22, NSColor(srgbRed: 1, green: 0.62, blue: 0.16, alpha: 1)),
+            (0, 12, NSColor(srgbRed: 1, green: 0.88, blue: 0.40, alpha: 1)),
+        ]
+        for (offset, tall, color) in flames {
+            let flame = CGMutablePath()
+            flame.move(to: CGPoint(x: -5, y: 0))
+            flame.addQuadCurve(to: CGPoint(x: 0, y: tall), control: CGPoint(x: -6, y: tall * 0.6))
+            flame.addQuadCurve(to: CGPoint(x: 5, y: 0), control: CGPoint(x: 6, y: tall * 0.6))
+            flame.closeSubpath()
+            let node = shape(flame, fill: color)
+            node.position = CGPoint(x: fireX + offset, y: floor + 5)
+            decor.addChild(node)
+            let pace = 0.12 + Double(random.unit()) * 0.12
+            node.run(.repeatForever(.sequence([.scaleY(to: 0.75, duration: pace), .scaleY(to: 1.1, duration: pace),
+                                               .scaleY(to: 0.9, duration: pace), .scaleY(to: 1, duration: pace)])))
+        }
+        let mantel = SKShapeNode(rect: CGRect(x: fireX - width / 2 - 7, y: floor + height, width: width + 14, height: 7),
+                                 cornerRadius: 2)
+        mantel.fillColor = wood
+        mantel.strokeColor = .clear
+        decor.addChild(mantel)
+        // A garland of fir along the mantel, with a few lights in it.
+        let garland = SKShapeNode(rect: CGRect(x: fireX - width / 2 - 4, y: floor + height + 6, width: width + 8, height: 4),
+                                  cornerRadius: 2)
+        garland.fillColor = Yuletide.fir
+        garland.strokeColor = .clear
+        decor.addChild(garland)
+        for index in 0..<7 {
+            let light = bulb(Yuletide.bulbs[index % Yuletide.bulbs.count], radius: 1.4, random: &random)
+            light.position = CGPoint(x: fireX - width / 2 + CGFloat(index) * (width / 6), y: floor + height + 8)
+            decor.addChild(light)
+        }
+        // Three stockings hanging from the mantel, red and green with white cuffs.
+        for (index, offset) in [CGFloat(-26), 0, 26].enumerated() {
+            let top = floor + height
+            let sock = CGMutablePath()
+            sock.addLines(between: [
+                CGPoint(x: offset - 5, y: top), CGPoint(x: offset + 5, y: top), CGPoint(x: offset + 5, y: top - 14),
+                CGPoint(x: offset + 9, y: top - 16), CGPoint(x: offset + 9, y: top - 21), CGPoint(x: offset - 2, y: top - 21),
+                CGPoint(x: offset - 5, y: top - 17),
+            ])
+            sock.closeSubpath()
+            let stocking = shape(sock, fill: index == 1 ? Yuletide.green : Yuletide.red)
+            stocking.position.x = fireX
+            decor.addChild(stocking)
+            let cuff = SKShapeNode(rect: CGRect(x: fireX + offset - 6, y: top - 5, width: 12, height: 5), cornerRadius: 1.5)
+            cuff.fillColor = Yuletide.snow
+            cuff.strokeColor = .clear
+            decor.addChild(cuff)
+        }
+
+        // The tree, with presents piled round its foot.
+        let tree = firTree(height: 104, decorated: true, random: &random)
+        tree.position = CGPoint(x: treeX, y: floor)
+        decor.addChild(tree)
+        let wrapping: [(CGFloat, CGFloat, CGFloat, NSColor, NSColor)] = [
+            (-30, 16, 13, Yuletide.red, Yuletide.gold),
+            (-14, 12, 9, NSColor(srgbRed: 0.30, green: 0.50, blue: 0.92, alpha: 1), Yuletide.snow),
+            (18, 18, 11, Yuletide.green, Yuletide.red),
+            (33, 11, 15, Yuletide.gold, Yuletide.red),
+        ]
+        for (offset, wide, tall, paper, ribbon) in wrapping {
+            let box = SKShapeNode(rect: CGRect(x: treeX + offset - wide / 2, y: floor, width: wide, height: tall), cornerRadius: 1)
+            box.fillColor = paper
+            box.strokeColor = paper.blended(withFraction: 0.35, of: .black) ?? paper
+            decor.addChild(box)
+            let tie = CGMutablePath()
+            tie.move(to: CGPoint(x: treeX + offset, y: floor))
+            tie.addLine(to: CGPoint(x: treeX + offset, y: floor + tall))
+            tie.move(to: CGPoint(x: treeX + offset - wide / 2, y: floor + tall / 2))
+            tie.addLine(to: CGPoint(x: treeX + offset + wide / 2, y: floor + tall / 2))
+            decor.addChild(shape(tie, fill: .clear, stroke: ribbon, width: 2))
+            let bow = SKShapeNode(ellipseOf: CGSize(width: 7, height: 3.5))
+            bow.fillColor = ribbon
+            bow.strokeColor = .clear
+            bow.position = CGPoint(x: treeX + offset, y: floor + tall + 1)
+            decor.addChild(bow)
+        }
     }
 }

@@ -52,13 +52,13 @@ final class WorkshopController {
             guard theme != oldValue else { return }
             Theme.current = theme
             if theme.isMiddleEarth { lastMiddleEarth = theme }
-            // Picking a film or TV theme switches to its own agent style. Leaving one for an
-            // everyday theme puts back the style that was in use before it.
+            // Picking a film, TV or seasonal theme switches to its own agent style. Leaving one
+            // for an everyday theme puts back the style that was in use before it.
             switchingTheme = true
             if let style = theme.agentStyle {
-                if !oldValue.isTribute { styleBeforeTheme = artStyle }
+                if !oldValue.isCostumed { styleBeforeTheme = artStyle }
                 artStyle = style
-            } else if oldValue.isTribute {
+            } else if oldValue.isCostumed {
                 artStyle = styleBeforeTheme ?? .smooth
                 styleBeforeTheme = nil
             }

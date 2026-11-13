@@ -7,7 +7,7 @@ struct CastMember: Identifiable, Hashable {
     let look: PixelArt.Look
 }
 
-/// The characters each film or TV theme can cast its agents as. Each theme's main characters
+/// The characters each film, TV or seasonal theme can cast its agents as. Each theme's main characters
 /// are each played by one agent at a time, so there is only ever one wizard; when there are
 /// more agents than characters, the rest play extras.
 enum Cast {
@@ -17,6 +17,7 @@ enum Cast {
         if theme == .harryPotter { return "harryPotter" }
         if theme == .simpsons { return "simpsons" }
         if theme == .starWars { return "starWars" }
+        if theme == .santaClaude { return "northPole" }
         return nil
     }
 
@@ -111,6 +112,30 @@ enum Cast {
                 CastMember(id: "mandalorian", name: "The Mandalorian",
                            look: Look(hat: .hunterHelmet, pattern: .greyArmour, cape: "o")),
             ]
+        case "northPole":
+            // Santa Claude and the household at the North Pole: his workshop's elves, two of
+            // the reindeer that pull the sleigh, and the toys and treats that come to life.
+            return [
+                CastMember(id: "santa", name: "Santa Claude",
+                           look: Look(hat: .santa, accessories: [.longBeard], pattern: .santaSuit, held: .giftSack)),
+                CastMember(id: "mrsClaude", name: "Mrs Claude",
+                           look: Look(hat: .buns, accessories: [.roundGlasses, .pearls], pattern: .santaDress,
+                                      held: .candyCane, hair: "W")),
+                CastMember(id: "headElf", name: "The Head Elf",
+                           look: Look(hat: .elfHat, accessories: [.stripedScarf], pattern: .elfTunic, held: .niceList)),
+                CastMember(id: "toymaker", name: "The Toymaker",
+                           look: Look(hat: .elfHat, accessories: [.nerdGlasses], pattern: .elfTunic, held: .present)),
+                CastMember(id: "dasher", name: "Dasher",
+                           look: Look(hat: .antlers, accessories: [.goldChain], pattern: .fur)),
+                CastMember(id: "blitzen", name: "Blitzen",
+                           look: Look(hat: .antlers, accessories: [.scarf], pattern: .fur)),
+                CastMember(id: "snowman", name: "The Snowman",
+                           look: Look(hat: .topHat, accessories: [.scarf], pattern: .snowSuit)),
+                CastMember(id: "gingerbread", name: "Gingerbread",
+                           look: Look(accessories: [.bowTie], pattern: .gingerbread)),
+                CastMember(id: "nutcracker", name: "The Nutcracker",
+                           look: Look(hat: .bearskin, accessories: [.mustache], pattern: .soldierCoat)),
+            ]
         default:
             return []
         }
@@ -143,6 +168,12 @@ enum Cast {
             return [
                 CastMember(id: "townsperson", name: "A townsperson", look: Look(hat: .cap, pattern: .shirt)),
                 CastMember(id: "worker", name: "A plant worker", look: Look(hat: .messyHair, accessories: [.necktie], pattern: .shirt)),
+            ]
+        case "northPole":
+            return [
+                CastMember(id: "elf", name: "An elf", look: Look(hat: .elfHat, pattern: .elfTunic, held: .present)),
+                CastMember(id: "elfCane", name: "An elf", look: Look(hat: .elfHat, pattern: .elfTunic, held: .candyCane)),
+                CastMember(id: "reindeer", name: "A reindeer", look: Look(hat: .antlers, pattern: .fur)),
             ]
         default:
             return []
