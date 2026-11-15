@@ -171,6 +171,15 @@ final class WorkshopController {
             AppIcon.write(to: URL(fileURLWithPath: folder))
             exit(0)
         }
+        // `--icon-png <path> --icon-choice <id>` writes one dressed icon at 1024 px and quits.
+        if let path = value(after: "--icon-png") {
+            let id = value(after: "--icon-choice") ?? "default"
+            if let image = AppIcon.render(choice: id) {
+                try? NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])?
+                    .write(to: URL(fileURLWithPath: path))
+            }
+            exit(0)
+        }
         // `--icon-gif <gif>` writes the README's animated icon and quits.
         if let path = value(after: "--icon-gif") {
             AppIcon.writeGIF(to: URL(fileURLWithPath: path))
@@ -223,21 +232,34 @@ final class WorkshopController {
         }
 
         // `--record <folder> [--after s] [--seconds s]` saves the floor ten times a second as
-        // numbered PNGs, for turning into a GIF, then quits.
+        // numbered PNGs, for turning into a GIF, then quits. `--record-fps 30` records faster, for
+        // video; with `--snapshot-scale` above 1 those frames are drawn offscreen at that scale.
         if let folder = value(after: "--record") {
             let delay = value(after: "--after").flatMap(Double.init) ?? 5
-            let frames = Int((value(after: "--seconds").flatMap(Double.init) ?? 6) * 10)
+            let fps = value(after: "--record-fps").flatMap(Double.init) ?? 10
+            let frames = Int((value(after: "--seconds").flatMap(Double.init) ?? 6) * fps)
             let url = URL(fileURLWithPath: folder)
             try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+            let encoder = DispatchQueue(label: "record", qos: .userInitiated, attributes: .concurrent)
+            let pending = DispatchGroup()
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
                 var frame = 0
-                let recorder = Timer(timeInterval: 0.1, repeats: true) { timer in
-                    self?.saveSnapshot(to: url.appendingPathComponent(String(format: "frame_%03d.png", frame)),
-                                       offscreen: false)
+                let recorder = Timer(timeInterval: 1 / fps, repeats: true) { timer in
+                    let path = url.appendingPathComponent(String(format: "frame_%03d.png", frame))
+                    if fps > 10, let image = self?.grabFrame() {
+                        // Fast recording: grab the frame now, encode the PNG off the main thread.
+                        pending.enter()
+                        encoder.async {
+                            try? NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])?.write(to: path)
+                            pending.leave()
+                        }
+                    } else {
+                        self?.saveSnapshot(to: path, offscreen: false)
+                    }
                     frame += 1
                     if frame >= frames {
                         timer.invalidate()
-                        NSApp.terminate(nil)
+                        pending.notify(queue: .main) { NSApp.terminate(nil) }
                     }
                 }
                 RunLoop.main.add(recorder, forMode: .common)
@@ -327,6 +349,17 @@ final class WorkshopController {
         renderer.scale = 2
         guard let image = renderer.cgImage else { return }
         try? NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])?.write(to: url)
+    }
+
+    /// One frame for fast recording: offscreen at `--snapshot-scale` when above 1, else the window.
+    private func grabFrame() -> CGImage? {
+        if snapshotScale > 1 {
+            if offscreen == nil { offscreen = OffscreenRenderer(scene: scene) }
+            // Pausing the view pauses the scene too; the renderer drives it now, so let it run.
+            scene.isPaused = false
+            if let image = offscreen?.render(scale: snapshotScale) { return image }
+        }
+        return scene.view?.texture(from: scene)?.cgImage()
     }
 
     private func saveSnapshot(to url: URL, offscreen useOffscreen: Bool = true) {

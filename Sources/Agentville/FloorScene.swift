@@ -1788,13 +1788,15 @@ extension FloorScene {
         }
 
         addSnowfall(in: frame, areaPerFlake: 5200, random: &random)
-        addSleigh(in: frame, flightY: min(frame.maxY - 125, ground + 214))
+        // Low over the snow, below the agents, so it is never hidden behind the stations.
+        addSleigh(in: frame, flightY: ground + 27, size: 1.6)
     }
 
     /// Santa Claude's sleigh, piled with presents and pulled by four reindeer, flying across
     /// the sky every so often and leaving a trail of sparkles.
-    private func addSleigh(in frame: CGRect, flightY: CGFloat) {
+    private func addSleigh(in frame: CGRect, flightY: CGFloat, size: CGFloat = 1) {
         let team = SKNode()
+        team.setScale(size)
         let fur = NSColor(srgbRed: 0.52, green: 0.33, blue: 0.18, alpha: 1)
         let antler = NSColor(srgbRed: 0.86, green: 0.76, blue: 0.58, alpha: 1)
 
@@ -1892,18 +1894,18 @@ extension FloorScene {
         }
 
         team.alpha = 0
-        team.position = CGPoint(x: frame.minX - 120, y: flightY)
+        team.position = CGPoint(x: frame.minX - 120 * size, y: flightY)
         ambience.addChild(team)
         // About ten seconds to cross, taking off ten seconds after the floor is drawn and then
         // every twenty or so, so it is over the middle of the floor at around sixteen seconds.
-        let crossing = Double(frame.width + 240) / 120
+        let crossing = Double(frame.width + 240 * size) / 120
         team.run(.sequence([
             .wait(forDuration: 10),
             .repeatForever(.sequence([
-                .move(to: CGPoint(x: frame.minX - 120, y: flightY), duration: 0),
+                .move(to: CGPoint(x: frame.minX - 120 * size, y: flightY), duration: 0),
                 .fadeIn(withDuration: 0.3),
                 .group([
-                    .moveBy(x: frame.width + 240, y: 26, duration: crossing),
+                    .moveBy(x: frame.width + 240 * size, y: 10, duration: crossing),
                     .sequence([.moveBy(x: 0, y: 8, duration: crossing / 4), .moveBy(x: 0, y: -8, duration: crossing / 4),
                                .moveBy(x: 0, y: 8, duration: crossing / 4), .moveBy(x: 0, y: -8, duration: crossing / 4)]),
                 ]),
@@ -1918,7 +1920,7 @@ extension FloorScene {
             let spark = SKShapeNode(circleOfRadius: 1 + CGFloat.random(in: 0...0.8))
             spark.fillColor = Yuletide.bulbs[Int.random(in: 0..<Yuletide.bulbs.count)].blended(withFraction: 0.5, of: .white) ?? .white
             spark.strokeColor = .clear
-            spark.position = CGPoint(x: team.position.x - 22, y: team.position.y + CGFloat.random(in: -2...6))
+            spark.position = CGPoint(x: team.position.x - 22 * size, y: team.position.y + CGFloat.random(in: -2...6) * size)
             self.ambience.addChild(spark)
             spark.run(.sequence([
                 .group([.moveBy(x: CGFloat.random(in: -6...6), y: -18, duration: 1.2), .fadeOut(withDuration: 1.2)]),
